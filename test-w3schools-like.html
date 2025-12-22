@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>W3Schools Test Page - UI Inspection Testing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .navbar {
+            background-color: #4CAF50;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tutorial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .tutorial-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .tutorial-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .tutorial-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .tutorial-desc {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 0.5rem;
+            display: inline-block;
+            background-color: #ddd;
+            border-radius: 2px;
+        }
+
+        .small-icon {
+            width: 12px;
+            height: 12px;
+            background-color: #ccc;
+            display: inline-block;
+            margin: 0 2px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background-color: #007bff;
+            color: white;
+            font-size: 0.75rem;
+            border-radius: 3px;
+            margin-left: 0.5rem;
+        }
+
+        .star {
+            color: gold;
+            font-size: 0.8rem;
+            margin-right: 2px;
+        }
+
+        .decorative-element {
+            width: 8px;
+            height: 8px;
+            background-color: #007bff;
+            display: inline-block;
+            margin: 0 4px;
+            border-radius: 50%;
+        }
+
+        .breadcrumb {
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+            margin: 0 4px;
+        }
+
+        .breadcrumb span {
+            margin: 0 4px;
+            color: #666;
+        }
+
+        .code-example {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin: 0.5rem;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .small-btn {
+            padding: 2px 6px;
+            font-size: 0.8rem;
+        }
+
+        .footer {
+            background-color: #333;
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .social-links {
+            margin: 1rem 0;
+        }
+
+        .social-links a {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-color: #555;
+            margin: 0 4px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 1px 4px;
+            background-color: #e9ecef;
+            font-size: 0.75rem;
+            border-radius: 2px;
+            margin: 2px;
+        }
+
+        /* Small decorative elements */
+        .dot {
+            width: 4px;
+            height: 4px;
+            background-color: #666;
+            display: inline-block;
+            border-radius: 50%;
+            margin: 0 2px;
+        }
+
+        .line {
+            width: 20px;
+            height: 1px;
+            background-color: #ddd;
+            display: inline-block;
+            margin: 0 4px;
+        }
+
+        /* Microscopic elements that should be ignored */
+        .micro-dot {
+            width: 2px;
+            height: 2px;
+            background-color: #999;
+            display: inline-block;
+            margin: 1px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="logo">★ W3Schools</div>
+        <div class="nav-links">
+            <a href="#" class="nav-link">Tutorials</a>
+            <a href="#" class="nav-link">References</a>
+            <a href="#" class="nav-link">Exercises</a>
+            <span class="badge">NEW</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="#">Home</a>
+            <span>></span>
+            <a href="#">Tutorials</a>
+            <span>></span>
+            <span>HTML</span>
+        </div>
+
+        <!-- Decorative elements -->
+        <div class="decorative-element"></div>
+        <div class="decorative-element"></div>
+        <div class="decorative-element"></div>
+        <span class="line"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+
+        <!-- Main heading with small icons -->
+        <h1>
+            <span class="icon"></span>
+            Learn to Code
+            <span class="star">★</span>
+            <span class="badge">HOT</span>
+        </h1>
+
+        <!-- Tutorial Grid -->
+        <div class="tutorial-grid">
+            <div class="tutorial-card">
+                <h3 class="tutorial-title">
+                    <span class="icon"></span>
+                    HTML
+                    <span class="badge">FREE</span>
+                </h3>
+                <p class="tutorial-desc">The language for building web pages</p>
+                <a href="#" class="btn">Learn HTML</a>
+                <div class="micro-dot"></div>
+                <div class="micro-dot"></div>
+                <div class="micro-dot"></div>
+            </div>
+
+            <div class="tutorial-card">
+                <h3 class="tutorial-title">
+                    <span class="icon"></span>
+                    CSS
+                    <span class="badge">POPULAR</span>
+                </h3>
+                <p class="tutorial-desc">The language for styling web pages</p>
+                <a href="#" class="btn">Learn CSS</a>
+            </div>
+
+            <div class="tutorial-card">
+                <h3 class="tutorial-title">
+                    <span class="icon"></span>
+                    JavaScript
+                    <span class="star">★</span>
+                </h3>
+                <p class="tutorial-desc">The language for programming web pages</p>
+                <a href="#" class="btn">Learn JavaScript</a>
+            </div>
+
+            <div class="tutorial-card">
+                <h3 class="tutorial-title">
+                    <span class="icon"></span>
+                    Python
+                    <span class="badge">TRENDING</span>
+                </h3>
+                <p class="tutorial-desc">A popular programming language</p>
+                <a href="#" class="btn">Learn Python</a>
+            </div>
+
+            <div class="tutorial-card">
+                <h3 class="tutorial-title">
+                    <span class="icon"></span>
+                    SQL
+                </h3>
+                <p class="tutorial-desc">A language for accessing databases</p>
+                <a href="#" class="btn">Learn SQL</a>
+            </div>
+
+            <div class="tutorial-card">
+                <h3 class="tutorial-title">
+                    <span class="icon"></span>
+                    PHP
+                </h3>
+                <p class="tutorial-desc">A web server programming language</p>
+                <a href="#" class="btn">Learn PHP</a>
+            </div>
+        </div>
+
+        <!-- Code example with small elements -->
+        <div class="code-example">
+            <h4>HTML Example:</h4>
+            <pre>&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;HTML Tutorial&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+&lt;h1&gt;This is a heading&lt;/h1&gt;
+&lt;p&gt;This is a paragraph.&lt;/p&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+            <span class="small-icon"></span>
+            <a href="#" class="btn small-btn">Try it Yourself</a>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        </div>
+
+        <!-- Small navigation elements -->
+        <div style="margin: 1rem 0;">
+            <span class="tag">HTML</span>
+            <span class="tag">CSS</span>
+            <span class="tag">JavaScript</span>
+            <span class="tag">Python</span>
+            <span class="tag">SQL</span>
+            <span class="tag">PHP</span>
+            <span class="tag">Java</span>
+            <span class="tag">C++</span>
+        </div>
+
+        <!-- Small buttons and links -->
+        <div>
+            <button class="btn small-btn">Get Started</button>
+            <button class="btn small-btn">Sign Up</button>
+            <a href="#" style="font-size: 12px; color: #007bff; text-decoration: none; margin-left: 10px;">Learn More</a>
+            <span class="small-icon"></span>
+            <span class="micro-dot"></span>
+            <span class="micro-dot"></span>
+        </div>
+
+        <!-- Footer with social links -->
+        <footer class="footer">
+            <p>&copy; 2025 W3Schools. All rights reserved.</p>
+            <div class="social-links">
+                <a href="#" title="Facebook">F</a>
+                <a href="#" title="Twitter">T</a>
+                <a href="#" title="Instagram">I</a>
+                <a href="#" title="LinkedIn">L</a>
+                <span class="small-icon"></span>
+                <span class="dot"></span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Microscopic decorative elements scattered throughout -->
+    <div style="position: absolute; top: 100px; left: 50px;">
+        <div class="micro-dot"></div>
+        <div class="micro-dot"></div>
+    </div>
+    <div style="position: absolute; top: 200px; right: 30px;">
+        <div class="micro-dot"></div>
+        <div class="micro-dot"></div>
+        <div class="micro-dot"></div>
+    </div>
+    <div style="position: absolute; bottom: 50px; left: 100px;">
+        <span class="line"></span>
+        <span class="dot"></span>
+    </div>
+
+    <!-- Small SVG-like decorative elements -->
+    <svg width="20" height="20" style="position: absolute; top: 150px; right: 100px;">
+        <circle cx="10" cy="10" r="3" fill="#007bff"/>
+    </svg>
+    <svg width="15" height="15" style="position: absolute; bottom: 100px; left: 200px;">
+        <rect x="2" y="2" width="8" height="8" fill="#28a745"/>
+    </svg>
+    <svg width="12" height="12" style="position: absolute; top: 300px; left: 150px;">
+        <path d="M6 2 L8 8 L2 8 Z" fill="#ffc107"/>
+    </svg>
+
+    <!-- Tiny text elements -->
+    <span style="position: absolute; top: 250px; right: 50px; font-size: 8px; color: #999;">v1.0.0</span>
+    <span style="position: absolute; bottom: 30px; right: 80px; font-size: 10px; color: #666;">Last updated: 2025</span>
+</body>
+</html>

@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:30:54
- * Last Updated: 2025-12-22T07:41:13
+ * Last Updated: 2025-12-22T10:11:03
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -454,45 +454,6 @@ export class ElementInspector {
     });
 
     return styles;
-  }
-
-  /**
-   * Simple web scraping utility for extracting text content from elements
-   */
-  scrapeTextContent(selector: string): string {
-    try {
-      const element = document.querySelector(selector);
-      return element ? element.textContent?.trim() || '' : '';
-    } catch (error) {
-      console.error('Scraping error:', error);
-      return '';
-    }
-  }
-
-  /**
-   * Scrape multiple elements by selector
-   */
-  scrapeMultipleElements(selector: string): string[] {
-    try {
-      const elements = document.querySelectorAll(selector);
-      return Array.from(elements).map(el => el.textContent?.trim() || '');
-    } catch (error) {
-      console.error('Scraping error:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Scrape element attributes
-   */
-  scrapeAttributes(selector: string, attribute: string): string[] {
-    try {
-      const elements = document.querySelectorAll(selector);
-      return Array.from(elements).map(el => el.getAttribute(attribute) || '');
-    } catch (error) {
-      console.error('Scraping error:', error);
-      return [];
-    }
   }
 
   /**
