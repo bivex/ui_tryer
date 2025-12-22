@@ -239,6 +239,15 @@ export class GenerateReportUseCase {
    * Generates HTML report
    */
   private generateHTMLReport(report: UIReport): string {
+    // Group issues by element for better organization
+    const issuesByElement = report.issues.reduce((acc, issue) => {
+      if (!acc[issue.elementId]) {
+        acc[issue.elementId] = [];
+      }
+      acc[issue.elementId].push(issue);
+      return acc;
+    }, {} as Record<string, typeof report.issues>);
+
     return `
 <!DOCTYPE html>
 <html lang="ru">
@@ -247,22 +256,119 @@ export class GenerateReportUseCase {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${report.title}</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; }
-        .header { border-bottom: 1px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
-        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .metric { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
-        .metric-number { font-size: 2em; font-weight: bold; color: #007bff; }
-        .issues { margin-bottom: 30px; }
-        .issue { border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 10px; }
-        .issue.error { border-color: #dc3545; background: #f8d7da; }
-        .issue.warning { border-color: #ffc107; background: #fff3cd; }
-        .issue.info { border-color: #17a2b8; background: #d1ecf1; }
-        .grade { font-size: 1.5em; font-weight: bold; text-align: center; margin: 20px 0; }
-        .grade.A { color: #28a745; }
-        .grade.B { color: #ffc107; }
-        .grade.C { color: #fd7e14; }
-        .grade.D { color: #dc3545; }
-        .grade.F { color: #6c757d; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .metric {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .metric-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .issues {
+            margin-bottom: 30px;
+        }
+        .element-group {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .element-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+        .element-position {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        .issue {
+            border-left: 4px solid #dee2e6;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+        }
+        .issue.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .issue.warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .issue.info {
+            border-left-color: #17a2b8;
+            background: #d1ecf1;
+        }
+        .issue-details {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .position-info {
+            background: rgba(255,255,255,0.8);
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
+        .grade {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .grade.A { color: #28a745; background: rgba(40, 167, 69, 0.1); }
+        .grade.B { color: #ffc107; background: rgba(255, 193, 7, 0.1); }
+        .grade.C { color: #fd7e14; background: rgba(253, 126, 20, 0.1); }
+        .grade.D { color: #dc3545; background: rgba(220, 53, 69, 0.1); }
+        .grade.F { color: #6c757d; background: rgba(108, 117, 125, 0.1); }
+
+        .todo-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        .todo-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+        }
+        .todo-priority-critical { border-left-color: #dc3545; }
+        .todo-priority-important { border-left-color: #ffc107; }
+        .todo-priority-recommendation { border-left-color: #17a2b8; }
     </style>
 </head>
 <body>
@@ -294,14 +400,45 @@ export class GenerateReportUseCase {
 
     <div class="issues">
         <h2>Найденные проблемы</h2>
-        ${report.issues.map(issue => `
-            <div class="issue ${issue.severity}">
-                <h4>${issue.message}</h4>
-                <p><strong>Элемент:</strong> ${issue.selector}</p>
-                <p><strong>Тип:</strong> ${issue.type}</p>
-                ${issue.suggestedFix ? `<p><strong>Рекомендация:</strong> ${issue.suggestedFix}</p>` : ''}
+
+        ${Object.entries(issuesByElement).map(([elementId, elementIssues]) => {
+          const firstIssue = elementIssues[0];
+          const element = report.issues.find(i => i.elementId === elementId);
+          const positionInfo = this.generatePositionInfo(element, report);
+
+          return `
+            <div class="element-group">
+                <div class="element-header">
+                    Элемент: <code>${firstIssue.selector}</code>
+                    <div class="element-position">${positionInfo}</div>
+                </div>
+
+                ${elementIssues.map(issue => `
+                    <div class="issue ${issue.severity}">
+                        <h4>${issue.message}</h4>
+                        <div class="issue-details">
+                            <strong>Тип проблемы:</strong> ${this.getIssueTypeLabel(issue.type)}<br>
+                            <strong>Важность:</strong> ${this.getSeverityLabel(issue.severity)}<br>
+                            ${issue.actualValue ? `<strong>Текущее значение:</strong> ${issue.actualValue}<br>` : ''}
+                            ${issue.expectedValue ? `<strong>Ожидаемое значение:</strong> ${issue.expectedValue}<br>` : ''}
+                            ${issue.position ? `
+                                <div class="position-info">
+                                    📍 Позиция проблемы: x=${issue.position.x}, y=${issue.position.y}
+                                    (размер: ${issue.position.width}×${issue.position.height})
+                                </div>
+                            ` : ''}
+                        </div>
+                        ${issue.suggestedFix ? `<p><strong>💡 Рекомендация:</strong> ${issue.suggestedFix}</p>` : ''}
+                    </div>
+                `).join('')}
             </div>
-        `).join('')}
+          `;
+        }).join('')}
+    </div>
+
+    <div class="todo-section">
+        <h2>📋 План исправлений</h2>
+        ${this.generateHTMLTodoList(report.issues)}
     </div>
 </body>
 </html>`;
@@ -403,6 +540,117 @@ ${todoList}`;
     }
 
     return todos.join('\n');
+  }
+
+  /**
+   * Generates HTML todo list with styling
+   */
+  private generateHTMLTodoList(issues: ElementInspection['issues']): string {
+    if (issues.length === 0) {
+      return '<p>✅ Поздравляем! Критических проблем не найдено.</p>';
+    }
+
+    const todos: string[] = [];
+    const processedIssues = new Set<string>();
+
+    // Group issues by type and selector to avoid duplicates
+    const groupedIssues = issues.reduce((acc, issue) => {
+      const key = `${issue.type}-${issue.selector}`;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(issue);
+      return acc;
+    }, {} as Record<string, ElementInspection['issues']>);
+
+    // Generate todos for each issue group
+    Object.entries(groupedIssues).forEach(([key, issueGroup]) => {
+      const firstIssue = issueGroup[0];
+      const solution = this.getIssueSolution(firstIssue);
+      const priority = this.getIssuePriority(firstIssue);
+      const priorityClass = priority.includes('КРИТИЧНО') ? 'critical' :
+                           priority.includes('ВАЖНО') ? 'important' : 'recommendation';
+
+      if (solution && !processedIssues.has(key)) {
+        todos.push(`<div class="todo-item todo-priority-${priorityClass}">
+            <strong>${priority}</strong><br>
+            ${solution}
+        </div>`);
+        processedIssues.add(key);
+      }
+    });
+
+    // Add summary at the end
+    const criticalCount = issues.filter(i => i.severity === 'error').length;
+    const warningCount = issues.filter(i => i.severity === 'warning').length;
+
+    if (criticalCount > 0 || warningCount > 0) {
+      todos.push('<div class="todo-item" style="background: #e9ecef; border-left-color: #6c757d;">');
+      todos.push('<strong>📊 Сводка исправлений</strong><br>');
+      if (criticalCount > 0) {
+        todos.push(`<span style="color: #dc3545;">🚨 Критических проблем: ${criticalCount} (требуют немедленного исправления)</span><br>`);
+      }
+      if (warningCount > 0) {
+        todos.push(`<span style="color: #ffc107;">⚠️ Предупреждений: ${warningCount} (рекомендуется исправить)</span><br>`);
+      }
+      todos.push(`<span style="color: #28a745;">📈 После исправлений оценка вырастет до: ${this.calculateProjectedScore(issues)}%</span>`);
+      todos.push('</div>');
+    }
+
+    return todos.join('\n');
+  }
+
+  /**
+   * Generates position information for an element
+   */
+  private generatePositionInfo(issue: ElementInspection['issues'][0] | undefined, report: UIReport): string {
+    if (!issue) return '';
+
+    // Find the element in the report to get its inspection data
+    const elementInspection = report.issues.find(i => i.elementId === issue.elementId);
+
+    if (elementInspection && elementInspection.position) {
+      const pos = elementInspection.position;
+      return `📍 Позиция: ${pos.x}, ${pos.y} | Размер: ${pos.width}×${pos.height}px`;
+    }
+
+    return '📍 Позиция: информация недоступна';
+  }
+
+  /**
+   * Gets human-readable label for issue type
+   */
+  private getIssueTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      'too_small_clickable_area': 'Слишком маленькая кликабельная область',
+      'color_not_in_palette': 'Цвет не из палитры',
+      'contrast_ratio_low': 'Низкий контраст',
+      'spacing_not_on_grid': 'Отступы не на сетке',
+      'asymmetric_spacing': 'Асимметричные отступы',
+      'text_too_small': 'Слишком маленький текст',
+      'missing_alt_text': 'Отсутствует alt текст',
+      'inaccessible_click_area': 'Недоступная область клика',
+      'spacing_not_in_scale': 'Отступы не в шкале',
+      'layout_shift': 'Сдвиг макета',
+      'responsive_overflow': 'Переполнение на мобильных',
+      'alignment_issue': 'Проблема выравнивания',
+      'inconsistent_sizing': 'Несоответствующие размеры'
+    };
+
+    return labels[type] || type;
+  }
+
+  /**
+   * Gets human-readable label for severity
+   */
+  private getSeverityLabel(severity: string): string {
+    const labels: Record<string, string> = {
+      'error': '🚨 Критично',
+      'warning': '⚠️ Предупреждение',
+      'info': 'ℹ️ Рекомендация'
+    };
+
+    return labels[severity] || severity;
   }
 
   /**
