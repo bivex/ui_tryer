@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:31:13
- * Last Updated: 2025-12-22T08:11:36
+ * Last Updated: 2025-12-22T08:49:53
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -328,15 +328,8 @@ const Popup: React.FC = () => {
       if (response.success && response.data?.report) {
         await navigator.clipboard.writeText(response.data.report);
 
-        // Show report content to user
-        const reportPreview = response.data.report.length > 500
-          ? response.data.report.substring(0, 500) + '...\n\n[Полный отчет скопирован в буфер обмена]'
-          : response.data.report;
-
-        alert(`📋 Отчет скопирован в буфер обмена!\n\n${reportPreview}`);
-
-        // Also log full report to console for debugging
-        console.log('Pixel Police Report:', response.data.report);
+        // Show brief success feedback and log full report to console
+        console.log('Pixel Police Report copied to clipboard:', response.data.report);
       } else {
         alert('❌ Не удалось сгенерировать отчет');
       }
