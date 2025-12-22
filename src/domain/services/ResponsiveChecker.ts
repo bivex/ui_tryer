@@ -14,7 +14,7 @@
  */
 
 import { ElementInspection, Issue, IssueSeverity, ElementInspectionFactory } from '../entities/ElementInspection';
-import { DesignRules, TailwindBreakpoint } from '../entities/DesignRules';
+import { DesignRules, Breakpoint } from '../entities/DesignRules';
 
 /**
  * Domain service for checking responsive behavior
@@ -48,7 +48,7 @@ export class ResponsiveChecker {
   private static checkElementResponsive(
     element: ElementInspection,
     viewportSize: { width: number; height: number },
-    breakpoint: TailwindBreakpoint | null,
+    breakpoint: Breakpoint | null,
     rules: DesignRules
   ): Issue[] {
     const issues: Issue[] = [];
@@ -203,7 +203,7 @@ export class ResponsiveChecker {
   /**
    * Gets the active breakpoint for current viewport width
    */
-  private static getActiveBreakpoint(viewportWidth: number, rules: DesignRules): TailwindBreakpoint | null {
+  private static getActiveBreakpoint(viewportWidth: number, rules: DesignRules): Breakpoint | null {
     return rules.breakpoints.find(bp => viewportWidth >= bp.minWidth) || null;
   }
 
@@ -252,8 +252,8 @@ export class ResponsiveChecker {
    */
   static validateBreakpointCompatibility(
     elements: ElementInspection[],
-    fromBreakpoint: TailwindBreakpoint,
-    toBreakpoint: TailwindBreakpoint,
+    fromBreakpoint: Breakpoint,
+    toBreakpoint: Breakpoint,
     rules: DesignRules
   ): Issue[] {
     const issues: Issue[] = [];
@@ -274,8 +274,8 @@ export class ResponsiveChecker {
    */
   private static checkDeviceTransition(
     element: ElementInspection,
-    fromBreakpoint: TailwindBreakpoint,
-    toBreakpoint: TailwindBreakpoint,
+    fromBreakpoint: Breakpoint,
+    toBreakpoint: Breakpoint,
     rules: DesignRules
   ): Issue[] {
     const issues: Issue[] = [];

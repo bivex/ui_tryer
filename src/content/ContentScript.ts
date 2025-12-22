@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:47:21
- * Last Updated: 2025-12-22T11:34:34
+ * Last Updated: 2025-12-22T11:41:53
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -19,8 +19,9 @@
  */
 import { MessageRouter } from './MessageRouter';
 import { ElementInspector } from '../infrastructure/dom/ElementInspector';
-import { Message, MessageType } from '../../types/MessageContracts';
-import { ElementInspection, ElementInspectionFactory } from '../domain/entities/ElementInspection';
+import { Message, MessageType, ElementInspection, Issue, AdvancedDesignRules, APCAContrastRules, VerticalRhythmRules, AdvancedTypographyRules, ColorHarmonyRules, LayoutAnalysisRules, AdvancedAccessibilityRules, InteractionRules, ConsistencyRules, ResponsiveRules, PerformanceRules, ElementInspectionFactory } from '../../types/MessageContracts';
+import { BoxModel } from '../domain/entities/BoxModel';
+import { AdvancedElementAnalyzer } from '../domain/services/AdvancedElementAnalyzer';
 
 class ContentScript {
   private messageRouter: MessageRouter;
@@ -192,30 +193,230 @@ class ContentScript {
   }
 
   /**
-   * Create simplified design rules from settings
+   * Create advanced design rules from settings
    */
-  private createDesignRules(settings?: any): any {
+  private createAdvancedDesignRules(settings?: any): AdvancedDesignRules {
     const designRules = settings?.designRules || {};
 
+    // Create basic advanced design rules structure
+    // This is a simplified version - in production, you'd want more comprehensive defaults
     return {
-      spacingScale: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 },
-      spacingGrid: [4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72, 80, 96],
-      minClickableSize: 44,
-      colorPalette: ['#000000', '#ffffff', '#007bff', '#28a745', '#dc3545', '#ffc107', '#6f42c1'],
-      typographyScale: {
-        body: { xs: 12, sm: 14, md: 16, lg: 18 },
-        minMobileSize: 14,
-        minContrastRatio: 4.5,
-      },
-      featureToggles: {
-        checkColorPalette: designRules.checkColorPalette ?? false,
-        checkSpacingGrid: true,
-        checkTypographySizes: true,
-        checkAccessibility: true,
-        checkResponsive: true,
-        checkComponentSizes: true,
-        checkLayout: true,
-      },
+      apcaContrast: {
+        thresholds: {
+          bodyText: { min: designRules.apcaContrast?.thresholds?.bodyText?.min || 75, preferred: designRules.apcaContrast?.thresholds?.bodyText?.preferred || 90 },
+          headingText: { min: designRules.apcaContrast?.thresholds?.headingText?.min || 75, preferred: designRules.apcaContrast?.thresholds?.headingText?.preferred || 90 },
+          largeText: { min: designRules.apcaContrast?.thresholds?.largeText?.min || 60, preferred: designRules.apcaContrast?.thresholds?.largeText?.preferred || 75 },
+          uiComponents: { min: designRules.apcaContrast?.thresholds?.uiComponents?.min || 30, preferred: designRules.apcaContrast?.thresholds?.uiComponents?.preferred || 45 },
+        },
+        adjustments: {
+          boldText: designRules.apcaContrast?.adjustments?.boldText || 0,
+          italicText: designRules.apcaContrast?.adjustments?.italicText || 0,
+          smallText: designRules.apcaContrast?.adjustments?.smallText || 0,
+        },
+      } as APCAContrastRules,
+      verticalRhythm: {
+        baseLineHeight: designRules.verticalRhythm?.baseLineHeight || 1.5,
+        allowedRatios: designRules.verticalRhythm?.allowedRatios || [1, 2, 3, 4],
+        tolerance: designRules.verticalRhythm?.tolerance || 2,
+        minSpacingDifference: designRules.verticalRhythm?.minSpacingDifference || 4,
+        opticalAlignment: {
+          textDescenders: designRules.verticalRhythm?.opticalAlignment?.textDescenders || 0,
+          iconPadding: designRules.verticalRhythm?.opticalAlignment?.iconPadding || 0,
+          avatarWeight: designRules.verticalRhythm?.opticalAlignment?.avatarWeight || 0,
+        },
+      } as VerticalRhythmRules,
+      typography: {
+        lineLength: {
+          narrow: { min: designRules.typography?.lineLength?.narrow?.min || 45, max: designRules.typography?.lineLength?.narrow?.max || 60 },
+          comfortable: { min: designRules.typography?.lineLength?.comfortable?.min || 60, max: designRules.typography?.lineLength?.comfortable?.max || 80 },
+          wide: { min: designRules.typography?.lineLength?.wide?.min || 80, max: designRules.typography?.lineLength?.wide?.max || 100 },
+        },
+        lineHeightRatios: {
+          small: designRules.typography?.lineHeightRatios?.small || 1.4,
+          body: designRules.typography?.lineHeightRatios?.body || 1.5,
+          subheading: designRules.typography?.lineHeightRatios?.subheading || 1.2,
+          heading: designRules.typography?.lineHeightRatios?.heading || 1.1,
+          display: designRules.typography?.lineHeightRatios?.display || 1.0,
+        },
+        typeScales: designRules.typography?.typeScales || {
+          'minor-second': 1.067,
+          'major-second': 1.125,
+          'minor-third': 1.2,
+          'major-third': 1.25,
+          'perfect-fourth': 1.333,
+          'golden-ratio': 1.618
+        },
+        orphansWidows: {
+          maxOrphanLines: designRules.typography?.orphansWidows?.maxOrphanLines || 2,
+          maxWidowLines: designRules.typography?.orphansWidows?.maxWidowLines || 2,
+          minLastLineRatio: designRules.typography?.orphansWidows?.minLastLineRatio || 0.3,
+        },
+      } as AdvancedTypographyRules,
+      colorHarmony: {
+        schemes: {
+          monochromatic: { hueTolerance: designRules.colorHarmony?.schemes?.monochromatic?.hueTolerance || 10 },
+          analogous: { hueTolerance: designRules.colorHarmony?.schemes?.analogous?.hueTolerance || 30 },
+          complementary: { angle: designRules.colorHarmony?.schemes?.complementary?.angle || 180, tolerance: designRules.colorHarmony?.schemes?.complementary?.tolerance || 10 },
+          triadic: { angle: designRules.colorHarmony?.schemes?.triadic?.angle || 120, tolerance: designRules.colorHarmony?.schemes?.triadic?.tolerance || 10 },
+          splitComplementary: { angle: designRules.colorHarmony?.schemes?.splitComplementary?.angle || 150, tolerance: designRules.colorHarmony?.schemes?.splitComplementary?.tolerance || 10 },
+          tetradic: { angles: designRules.colorHarmony?.schemes?.tetradic?.angles || [60, 180, 240], tolerance: designRules.colorHarmony?.schemes?.tetradic?.tolerance || 10 },
+        },
+        semantics: {
+          error: designRules.colorHarmony?.semantics?.error || ['#D32F2F'],
+          success: designRules.colorHarmony?.semantics?.success || ['#388E3C'],
+          warning: designRules.colorHarmony?.semantics?.warning || ['#FBC02D'],
+          info: designRules.colorHarmony?.semantics?.info || ['#1976D2'],
+          primary: designRules.colorHarmony?.semantics?.primary || ['#1976D2'],
+          secondary: designRules.colorHarmony?.semantics?.secondary || ['#424242'],
+        },
+        consistency: {
+          maxSaturationDeviation: designRules.colorHarmony?.consistency?.maxSaturationDeviation || 10,
+          maxLightnessDeviation: designRules.colorHarmony?.consistency?.maxLightnessDeviation || 10,
+          requiredSemanticRoles: designRules.colorHarmony?.consistency?.requiredSemanticRoles || ['primary', 'error'],
+        },
+        colorBlindness: {
+          simulateTypes: designRules.colorHarmony?.colorBlindness?.simulateTypes || ['protanopia', 'deuteranopia'],
+          minimumDifference: designRules.colorHarmony?.colorBlindness?.minimumDifference || 10,
+        },
+      } as ColorHarmonyRules,
+      layout: {
+        alignment: {
+          pixelTolerance: designRules.layout?.alignment?.pixelTolerance || 2,
+          minElementsInLine: designRules.layout?.alignment?.minElementsInLine || 3,
+        },
+        zIndex: {
+          scale: designRules.layout?.zIndex?.scale || 10,
+          maxRecommended: designRules.layout?.zIndex?.maxRecommended || 1000,
+          negativeAllowed: designRules.layout?.zIndex?.negativeAllowed || false,
+        },
+        visualHierarchy: {
+          weightFactors: {
+            size: designRules.layout?.visualHierarchy?.weightFactors?.size || 0.4,
+            colorSaturation: designRules.layout?.visualHierarchy?.weightFactors?.colorSaturation || 0.2,
+            borderWeight: designRules.layout?.visualHierarchy?.weightFactors?.borderWeight || 0.1,
+            shadowPresence: designRules.layout?.visualHierarchy?.weightFactors?.shadowPresence || 0.1,
+            fontWeight: designRules.layout?.visualHierarchy?.weightFactors?.fontWeight || 0.1,
+            position: designRules.layout?.visualHierarchy?.weightFactors?.position || 0.1,
+          },
+          focalPointThreshold: designRules.layout?.visualHierarchy?.focalPointThreshold || 0.6,
+          maxFocalPoints: designRules.layout?.visualHierarchy?.maxFocalPoints || 3,
+        },
+        grid: {
+          detectGridSize: designRules.layout?.grid?.detectGridSize || true,
+          commonGridSizes: designRules.layout?.grid?.commonGridSizes || [4, 8, 12, 16, 24],
+          alignmentTolerance: designRules.layout?.grid?.alignmentTolerance || 2,
+        },
+      } as LayoutAnalysisRules,
+      accessibility: {
+        aria: {
+          requiredAttributes: designRules.accessibility?.aria?.requiredAttributes || {
+            img: ['alt'],
+            link: ['aria-label'],
+            button: ['aria-label'],
+          },
+          allowedRoles: designRules.accessibility?.aria?.allowedRoles || ['button', 'link', 'heading', 'img', 'list', 'listitem', 'main', 'navigation', 'region'],
+          nameSources: designRules.accessibility?.aria?.nameSources || ['title', 'aria-label', 'aria-labelledby', 'content'],
+        },
+        keyboard: {
+          tabOrderTolerance: designRules.accessibility?.keyboard?.tabOrderTolerance || 5,
+          focusIndicatorMinSize: designRules.accessibility?.keyboard?.focusIndicatorMinSize || 2,
+          skipLinkRequired: designRules.accessibility?.keyboard?.skipLinkRequired || false,
+        },
+        semantics: {
+          requiredLandmarks: designRules.accessibility?.semantics?.requiredLandmarks || ['main', 'navigation', 'contentinfo'],
+          headingHierarchyMaxSkip: designRules.accessibility?.semantics?.headingHierarchyMaxSkip || 1,
+          listStructureRequired: designRules.accessibility?.semantics?.listStructureRequired || true,
+        },
+        motion: {
+          prefersReducedMotion: designRules.accessibility?.motion?.prefersReducedMotion || false,
+          animationDurationLimits: designRules.accessibility?.motion?.animationDurationLimits || { min: 0.1, max: 0.5 },
+        },
+      } as AdvancedAccessibilityRules,
+      interaction: {
+        requiredStates: designRules.interaction?.requiredStates || ['hover', 'focus', 'active'],
+        stateVisibility: {
+          minDifference: designRules.interaction?.stateVisibility?.minDifference || 0.1,
+          transitionRequired: designRules.interaction?.stateVisibility?.transitionRequired || true,
+          transitionDuration: designRules.interaction?.stateVisibility?.transitionDuration || { min: 0.1, max: 0.3 },
+        },
+        loading: {
+          skeletonRequired: designRules.interaction?.loading?.skeletonRequired || false,
+          layoutShiftTolerance: designRules.interaction?.loading?.layoutShiftTolerance || 0.1,
+          loadingIndicatorRequired: designRules.interaction?.loading?.loadingIndicatorRequired || true,
+        },
+        touch: {
+          minSize: designRules.interaction?.touch?.minSize || 44,
+          spacing: designRules.interaction?.touch?.spacing || 8,
+          gestureTolerance: designRules.interaction?.touch?.gestureTolerance || 5,
+        },
+      } as InteractionRules,
+      consistency: {
+        patterns: {
+          card: {
+            paddingScale: designRules.consistency?.patterns?.card?.paddingScale || [16, 24],
+            borderRadiusScale: designRules.consistency?.patterns?.card?.borderRadiusScale || [4, 8],
+            shadowRequired: designRules.consistency?.patterns?.card?.shadowRequired || true,
+          },
+          button: {
+            heightScale: designRules.consistency?.patterns?.button?.heightScale || [36, 44, 52],
+            widthConstraints: designRules.consistency?.patterns?.button?.widthConstraints || { min: 64 },
+          },
+          form: {
+            inputHeight: designRules.consistency?.patterns?.form?.inputHeight || 40,
+            labelSpacing: designRules.consistency?.patterns?.form?.labelSpacing || 8,
+            groupSpacing: designRules.consistency?.patterns?.form?.groupSpacing || 16,
+          },
+        },
+        tokens: {
+          spacingTokens: designRules.consistency?.tokens?.spacingTokens || ['--spacing-sm', '--spacing-md'],
+          colorTokens: designRules.consistency?.tokens?.colorTokens || ['--color-primary', '--color-text'],
+          typographyTokens: designRules.consistency?.tokens?.typographyTokens || ['--font-body', '--font-heading'],
+          strictTokenUsage: designRules.consistency?.tokens?.strictTokenUsage || false,
+        },
+        similarity: {
+          spacing: designRules.consistency?.similarity?.spacing || 0.9,
+          sizing: designRules.consistency?.similarity?.sizing || 0.9,
+          color: designRules.consistency?.similarity?.color || 0.9,
+        },
+      } as ConsistencyRules,
+      responsive: {
+        breakpoints: {
+          sm: designRules.responsive?.breakpoints?.sm || 640,
+          md: designRules.responsive?.breakpoints?.md || 768,
+          lg: designRules.responsive?.breakpoints?.lg || 1024,
+          xl: designRules.responsive?.breakpoints?.xl || 1280,
+          '2xl': designRules.responsive?.breakpoints?.['2xl'] || 1536,
+        },
+        mobileFirst: {
+          preferMinWidth: designRules.responsive?.mobileFirst?.preferMinWidth || true,
+          maxWidthAllowed: designRules.responsive?.mobileFirst?.maxWidthAllowed || false,
+        },
+        overflow: {
+          horizontalScrollPenalty: designRules.responsive?.overflow?.horizontalScrollPenalty || 10,
+          textOverflowHandling: designRules.responsive?.overflow?.textOverflowHandling || true,
+        },
+        containers: {
+          allowContainerQueries: designRules.responsive?.containers?.allowContainerQueries || false,
+          maxContainerWidth: designRules.responsive?.containers?.maxContainerWidth || 1440,
+        },
+      } as ResponsiveRules,
+      performance: {
+        layoutShift: {
+          imageDimensionsRequired: designRules.performance?.layoutShift?.imageDimensionsRequired || true,
+          fontLoadingStrategy: designRules.performance?.layoutShift?.fontLoadingStrategy || 'swap',
+          dynamicContentSpaceReserved: designRules.performance?.layoutShift?.dynamicContentSpaceReserved || true,
+        },
+        animation: {
+          preferTransform: designRules.performance?.animation?.preferTransform || true,
+          avoidProperties: designRules.performance?.animation?.avoidProperties || ['width', 'height', 'left', 'top'],
+          maxDuration: designRules.performance?.animation?.maxDuration || 500,
+        },
+        resources: {
+          lazyLoadingRecommended: designRules.performance?.resources?.lazyLoadingRecommended || true,
+          preloadCritical: designRules.performance?.resources?.preloadCritical || true,
+          compressionRequired: designRules.performance?.resources?.compressionRequired || true,
+        },
+      } as PerformanceRules,
     };
   }
 
@@ -225,7 +426,7 @@ class ContentScript {
   private async analyzeAllElements(settings?: any): Promise<ElementInspection[]> {
     const elements = document.querySelectorAll('*');
     const analyzedElements: ElementInspection[] = [];
-    const designRules = this.createDesignRules(settings);
+    const designRules = this.createAdvancedDesignRules(settings);
 
     // Process elements in batches to avoid blocking the main thread
     const batchSize = 20;
@@ -259,16 +460,15 @@ class ContentScript {
   }
 
   /**
-   * Create basic ElementInspection with fundamental UI issues
+   * Create ElementInspection using AdvancedElementAnalyzer
    */
-  private createBasicElementInspection(element: Element, elementId: string, rules: any): ElementInspection {
+  private createBasicElementInspection(element: Element, elementId: string, rules: AdvancedDesignRules): ElementInspection {
     const htmlElement = element as HTMLElement;
     const rect = htmlElement.getBoundingClientRect();
     const computedStyle = window.getComputedStyle(htmlElement);
-    const issues: any[] = [];
 
-    // Create box model
-    const boxModel = {
+    // Create proper BoxModel
+    const boxModel: BoxModel = {
       content: {
         width: rect.width,
         height: rect.height,
@@ -309,47 +509,30 @@ class ContentScript {
       paddingBottom: parseFloat(computedStyle.paddingBottom) || 0,
     };
 
-    // Extract computed styles in the expected format
-    const computedStyles: any = {
-      display: computedStyle.display,
-      position: computedStyle.position,
-      width: computedStyle.width,
-      height: computedStyle.height,
-      minWidth: computedStyle.minWidth,
-      minHeight: computedStyle.minHeight,
-      maxWidth: computedStyle.maxWidth,
-      maxHeight: computedStyle.maxHeight,
-      fontSize: computedStyle.fontSize,
-      lineHeight: computedStyle.lineHeight,
-      fontFamily: computedStyle.fontFamily,
-      fontWeight: computedStyle.fontWeight,
-      color: computedStyle.color,
-      backgroundColor: computedStyle.backgroundColor,
-      borderColor: computedStyle.borderTopColor,
-      margin: computedStyle.margin,
-      padding: computedStyle.padding,
-      border: computedStyle.border,
-      cursor: computedStyle.cursor,
-      pointerEvents: computedStyle.pointerEvents,
-      visibility: computedStyle.visibility,
-      opacity: computedStyle.opacity,
-      boxShadow: computedStyle.boxShadow,
-    };
+    // Extract computed styles as Record<string, string> for AdvancedElementAnalyzer
+    const computedStyles: Record<string, string> = {};
+    for (let i = 0; i < computedStyle.length; i++) {
+      const property = computedStyle[i];
+      computedStyles[property] = computedStyle.getPropertyValue(property);
+    }
 
     const selector = this.createSelectorForElement(element);
+    const context = this.createElementContext(element);
 
-    // Check for basic issues
-    this.checkBasicIssues(element, boxModel, computedStyles, selector, rules, issues);
+    // Create advanced design rules (simplified)
+    const advancedRules = this.createAdvancedDesignRules({ designRules: rules });
 
-    return {
+    // Use AdvancedElementAnalyzer to get comprehensive issues
+    const inspection = AdvancedElementAnalyzer.analyzeElement(
       elementId,
       selector,
-      timestamp: Date.now(),
       boxModel,
       computedStyles,
-      issues,
-      context: this.createElementContext(element)
-    };
+      advancedRules,
+      context
+    );
+
+    return inspection;
   }
 
   /**

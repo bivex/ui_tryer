@@ -15,7 +15,7 @@
 
 import { ResponsiveChecker } from '../../domain/services/ResponsiveChecker';
 import { ElementInspection } from '../../domain/entities/ElementInspection';
-import { DesignRules, TailwindBreakpoint } from '../../domain/entities/DesignRules';
+import { DesignRules, Breakpoint } from '../../domain/entities/DesignRules';
 
 /**
  * Use case for checking responsive behavior
@@ -65,7 +65,7 @@ export class CheckResponsiveUseCase {
   /**
    * Gets a representative viewport size for a Tailwind breakpoint
    */
-  private getViewportForBreakpoint(breakpoint: TailwindBreakpoint): { width: number; height: number } {
+  private getViewportForBreakpoint(breakpoint: Breakpoint): { width: number; height: number } {
     // Use minWidth as base and add some padding for realistic viewport
     const width = breakpoint.minWidth;
     const height = 800; // Standard desktop height, adjust based on device type
@@ -323,14 +323,14 @@ export interface CheckResponsiveInput {
 
 export interface CheckBreakpointTransitionInput {
   elements: ElementInspection[];
-  fromBreakpoint: TailwindBreakpoint;
-  toBreakpoint: TailwindBreakpoint;
+  fromBreakpoint: Breakpoint;
+  toBreakpoint: Breakpoint;
   rules: DesignRules;
 }
 
 export interface CheckMultiBreakpointInput {
   elements: ElementInspection[];
-  breakpoints: TailwindBreakpoint[];
+  breakpoints: Breakpoint[];
   rules: DesignRules;
 }
 
@@ -349,8 +349,8 @@ export interface CheckResponsiveOutput {
 export interface CheckBreakpointTransitionOutput {
   success: boolean;
   issues: ElementInspection['issues'];
-  fromBreakpoint: TailwindBreakpoint;
-  toBreakpoint: TailwindBreakpoint;
+  fromBreakpoint: Breakpoint;
+  toBreakpoint: Breakpoint;
   transitionIssues: ElementInspection['issues'];
   targetIssues: ElementInspection['issues'];
   summary: ResponsiveCheckSummary;
@@ -376,7 +376,7 @@ export interface ResponsiveCheckSummary {
 }
 
 export interface BreakpointCheckResult {
-  breakpoint: TailwindBreakpoint;
+  breakpoint: Breakpoint;
   issues: ElementInspection['issues'];
   summary: ResponsiveCheckSummary;
   viewportSize: { width: number; height: number };

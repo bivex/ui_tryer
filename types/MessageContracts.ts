@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:27:15
- * Last Updated: 2025-12-22T11:34:34
+ * Last Updated: 2025-12-22T11:39:51
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -162,168 +162,15 @@ export interface SaveSettingsRequest {
   settings: ExtensionSettings;
 }
 
-import { IssueSeverity } from '../src/domain/entities/ElementInspection';
+import type { ElementInspection, Issue, IssueType, IssueSeverity, IssueCategory, BoxModel, Rect, Sides, ComputedStyles, ElementComparison, ComparisonDifference, ComparisonSummary, UIReport, ReportSummary, Screenshot, VisualMetrics, ElementContext, ElementRelations } from '../src/domain/entities/ElementInspection';
+import { ElementInspectionFactory } from '../src/domain/entities/ElementInspection';
+import type { AdvancedDesignRules, APCAContrastRules, VerticalRhythmRules, AdvancedTypographyRules, ColorHarmonyRules, LayoutAnalysisRules, AdvancedAccessibilityRules, InteractionRules, ConsistencyRules, ResponsiveRules, PerformanceRules } from '../src/domain/entities/AdvancedDesignRules';
+import type { DesignRules, SpacingScale, Breakpoint, ViewportSize } from '../src/domain/entities/DesignRules';
 
-// Import domain types
-export interface ElementInspection {
-  elementId: string;
-  selector: string;
-  boxModel: BoxModel;
-  computedStyles: ComputedStyles;
-  issues: Issue[];
-  timestamp: number;
-}
-
-export interface BoxModel {
-  content: Rect;
-  padding: Sides;
-  border: Sides;
-  margin: Sides;
-  totalWidth: number;
-  totalHeight: number;
-  // Direct access for convenience, derived from 'margin' and 'padding'
-  marginTop: number;
-  marginBottom: number;
-  paddingTop: number;
-  paddingBottom: number;
-}
-
-export interface Rect {
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-}
-
-export interface Sides {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
-
-export interface ComputedStyles {
-  display: string;
-  position: string;
-  width: string;
-  height: string;
-  minWidth?: string;
-  minHeight?: string;
-  maxWidth?: string;
-  maxHeight?: string;
-  fontSize: string;
-  lineHeight: string;
-  fontFamily?: string;
-  fontWeight?: string;
-  color: string;
-  backgroundColor: string;
-  backgroundImage?: string;
-  border?: string;
-  borderColor?: string;
-  margin?: string;
-  padding?: string;
-  cursor?: string;
-  pointerEvents?: string;
-  visibility?: string;
-  opacity?: string;
-  boxShadow?: string;
-}
-
-export interface DesignRules {
-  spacingGrid: number[];
-  minClickableSize: number;
-  colorPalette: string[];
-  breakpoints: Breakpoint[];
-  spacingScale: SpacingScale;
-}
-
-export interface SpacingScale {
-  xs: number;
-  sm: number;
-  md: number;
-  lg: number;
-  xl: number;
-  xxl: number;
-}
-
-export interface Breakpoint {
-  name: string;
-  width: number;
-  height: number;
-  device: 'mobile' | 'tablet' | 'desktop';
-}
-
-export interface ViewportSize {
-  width: number;
-  height: number;
-}
-
-export interface Issue {
-  id: string;
-  type: IssueType;
-  severity: 'info' | 'warning' | 'error';
-  message: string;
-  elementId: string;
-  selector: string;
-  suggestedFix?: string;
-  actualValue?: any;
-  expectedValue?: any;
-  position?: Rect;
-}
-
-export type IssueType =
-  | 'spacing_not_on_grid'
-  | 'asymmetric_spacing'
-  | 'inconsistent_sizing'
-  | 'too_small_clickable_area'
-  | 'alignment_issue'
-  | 'responsive_overflow'
-  | 'text_too_small'
-  | 'color_not_in_palette'
-  | 'spacing_not_in_scale';
-
-export interface ElementComparison {
-  elements: ElementInspection[];
-  differences: ComparisonDifference[];
-  summary: ComparisonSummary;
-}
-
-export interface ComparisonDifference {
-  property: string;
-  values: Record<string, any>;
-  variance: number;
-}
-
-export interface ComparisonSummary {
-  totalElements: number;
-  consistentProperties: string[];
-  inconsistentProperties: string[];
-}
-
-export interface UIReport {
-  id: string;
-  title: string;
-  timestamp: number;
-  url: string;
-  summary: ReportSummary;
-  issues: Issue[];
-  comparisons: ElementComparison[];
-  screenshots: Screenshot[];
-}
-
-export interface ReportSummary {
-  totalIssues: number;
-  issuesBySeverity: Record<string, number>;
-  issuesByType: Record<string, number>;
-  elementsInspected: number;
-}
-
-export interface Screenshot {
-  id: string;
-  data: string; // base64
-  description: string;
-  timestamp: number;
-}
+export type { ElementInspection, Issue, IssueType, IssueSeverity, IssueCategory, BoxModel, Rect, Sides, ComputedStyles, ElementComparison, ComparisonDifference, ComparisonSummary, UIReport, ReportSummary, Screenshot, VisualMetrics, ElementContext, ElementRelations };
+export { ElementInspectionFactory };
+export type { AdvancedDesignRules, APCAContrastRules, VerticalRhythmRules, AdvancedTypographyRules, ColorHarmonyRules, LayoutAnalysisRules, AdvancedAccessibilityRules, InteractionRules, ConsistencyRules, ResponsiveRules, PerformanceRules };
+export type { DesignRules, SpacingScale, Breakpoint, ViewportSize };
 
 export interface ExtensionSettings {
   designRules: DesignRules;
@@ -521,6 +368,7 @@ export interface PageAnalyzeProgress {
   completed: number;
   total: number;
   currentElement?: string;
+  issuesFound?: number;
 }
 
 export interface PageAnalyzeResponse {
@@ -623,10 +471,3 @@ export interface VisualHierarchy {
   hierarchyLevels: number;
   dominantElement?: string;
 }
-
-// Forward declarations for advanced types (to avoid circular imports)
-// These types are defined in domain entities and will be available at runtime
-export type AdvancedDesignRules = any; // Will be imported from domain
-export type ElementContext = any;
-export type VisualMetrics = any;
-export type ElementRelations = any;

@@ -7,13 +7,15 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:27:46
- * Last Updated: 2025-12-22T11:34:33
+ * Last Updated: 2025-12-22T11:55:42
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
  */
 
-import { BoxModel, Rect } from './BoxModel';
+import type { BoxModel, Rect, Sides } from './BoxModel';
+
+export type { BoxModel, Rect, Sides };
 
 /**
  * Domain entity representing a complete element inspection
@@ -320,7 +322,7 @@ export type IssueType =
   // Accessibility issues
   | 'missing_alt_text'
   | 'inaccessible_click_area'
-  | 'aria_incomplete'
+  | 'ari-incomplete'
   | 'keyboard_navigation_broken'
   | 'focus_indicator_missing'
   | 'semantic_structure_broken'
@@ -400,4 +402,47 @@ export class ElementInspectionFactory {
       ...options,
     };
   }
+}
+
+export interface UIReport {
+  id: string;
+  title: string;
+  timestamp: number;
+  url: string;
+  summary: ReportSummary;
+  issues: Issue[];
+  comparisons: ElementComparison[];
+  screenshots: Screenshot[];
+}
+
+export interface ReportSummary {
+  totalIssues: number;
+  issuesBySeverity: Record<string, number>;
+  issuesByType: Record<string, number>;
+  elementsInspected: number;
+}
+
+export interface Screenshot {
+  id: string;
+  data: string; // base64
+  description: string;
+  timestamp: number;
+}
+
+export interface ElementComparison {
+  elements: ElementInspection[];
+  differences: ComparisonDifference[];
+  summary: ComparisonSummary;
+}
+
+export interface ComparisonDifference {
+  property: string;
+  values: Record<string, any>;
+  variance: number;
+}
+
+export interface ComparisonSummary {
+  totalElements: number;
+  consistentProperties: string[];
+  inconsistentProperties: string[];
 }

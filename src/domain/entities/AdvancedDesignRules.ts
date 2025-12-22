@@ -13,9 +13,6 @@
  * Commercial licensing available upon request.
  */
 
-/**
- * Advanced design rules extending the basic DesignRules with sophisticated analysis algorithms
- */
 export interface AdvancedDesignRules {
   /** APCA contrast thresholds for different content types */
   apcaContrast: APCAContrastRules;

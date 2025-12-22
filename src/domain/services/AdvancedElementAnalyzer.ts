@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T12:15:00
- * Last Updated: 2025-12-22T11:34:40
+ * Last Updated: 2025-12-22T11:39:11
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -168,7 +168,7 @@ export class AdvancedElementAnalyzer {
     if (styles.role && !rules.allowedRoles.includes(styles.role)) {
       issues.push({
         id: `${elementId}_invalid_aria_role_${Date.now()}`,
-        type: 'aria_incomplete',
+        type: 'ari-incomplete',
         severity: 'error',
         category: 'accessibility',
         message: `Invalid ARIA role: ${styles.role}`,
@@ -188,7 +188,7 @@ export class AdvancedElementAnalyzer {
       if (missingAttrs.length > 0) {
         issues.push({
           id: `${elementId}_missing_aria_attrs_${Date.now()}`,
-          type: 'aria_incomplete',
+          type: 'ari-incomplete',
           severity: 'error',
           category: 'accessibility',
           message: `Role "${styles.role}" requires attributes: ${missingAttrs.join(', ')}`,
@@ -206,7 +206,7 @@ export class AdvancedElementAnalyzer {
       if (styles.tabIndex && parseInt(styles.tabIndex) >= 0) {
         issues.push({
           id: `${elementId}_aria_hidden_focusable_${Date.now()}`,
-          type: 'aria_incomplete',
+          type: 'ari-incomplete',
           severity: 'critical',
           category: 'accessibility',
           message: 'Element with aria-hidden="true" should not be focusable',
@@ -223,7 +223,7 @@ export class AdvancedElementAnalyzer {
     if (this.needsAccessibleName(styles.role) && !this.hasAccessibleName(styles)) {
       issues.push({
         id: `${elementId}_missing_accessible_name_${Date.now()}`,
-        type: 'aria_incomplete',
+        type: 'ari-incomplete',
         severity: 'error',
         category: 'accessibility',
         message: `Element with role "${styles.role}" needs an accessible name`,

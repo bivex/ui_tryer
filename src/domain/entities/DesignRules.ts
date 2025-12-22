@@ -45,7 +45,7 @@ export interface DesignFeatureToggles {
  */
 export interface DesignRules {
   /** Tailwind spacing scale - all allowed spacing values in px */
-  spacingScale: TailwindSpacingScale;
+  spacingScale: SpacingScale;
 
   /** Spacing grid for alignment (0.25rem increments) */
   spacingGrid: number[];
@@ -57,7 +57,7 @@ export interface DesignRules {
   colorPalette: TailwindColorPalette;
 
   /** Tailwind responsive breakpoints */
-  breakpoints: TailwindBreakpoint[];
+  breakpoints: Breakpoint[];
 
   /** Typography scale following Tailwind conventions */
   typographyScale: TailwindTypographyScale;
@@ -81,7 +81,7 @@ export interface DesignRules {
 /**
  * Tailwind spacing scale (0.25rem = 4px increments)
  */
-export interface TailwindSpacingScale {
+export interface SpacingScale {
   // Spacing tokens (0.25rem = 4px)
   px: number;      // 1px
   '0': number;     // 0px
@@ -123,7 +123,7 @@ export interface TailwindSpacingScale {
 /**
  * Tailwind responsive breakpoint definition
  */
-export interface TailwindBreakpoint {
+export interface Breakpoint {
   /** Tailwind breakpoint name (sm, md, lg, xl, 2xl) */
   name: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
@@ -138,6 +138,14 @@ export interface TailwindBreakpoint {
 
   /** Tailwind container max-width */
   containerMaxWidth?: number;
+}
+
+/**
+ * Viewport size interface (used in responsive checks)
+ */
+export interface ViewportSize {
+  width: number;
+  height: number;
 }
 
 /**
@@ -751,7 +759,7 @@ export class DesignRulesFactory {
   /**
    * Checks if a breakpoint is active for given viewport size
    */
-  static getActiveBreakpoint(rules: DesignRules, viewportWidth: number): TailwindBreakpoint | null {
+  static getActiveBreakpoint(rules: DesignRules, viewportWidth: number): Breakpoint | null {
     return rules.breakpoints.find(bp => viewportWidth >= bp.minWidth) || null;
   }
 
@@ -760,7 +768,7 @@ export class DesignRulesFactory {
    */
   static getTailwindSpacingClass(rules: DesignRules, pixels: number): string {
     const closest = this.getClosestSpacing(rules, pixels);
-    const spacingKey = Object.keys(rules.spacingScale).find(key => rules.spacingScale[key as keyof TailwindSpacingScale] === closest);
+    const spacingKey = Object.keys(rules.spacingScale).find(key => rules.spacingScale[key as keyof SpacingScale] === closest);
     return spacingKey || '4';
   }
 
