@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:27:51
- * Last Updated: 2025-12-22T08:26:23
+ * Last Updated: 2025-12-22T08:32:03
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -44,6 +44,9 @@ export interface DesignRules {
 
   /** Shadow scale */
   shadowScale: TailwindShadowScale;
+
+  /** Essential design rules (must-have) */
+  essentialRules: EssentialDesignRules;
 }
 
 /**
@@ -223,6 +226,150 @@ export interface TailwindShadowScale {
 }
 
 /**
+ * Essential design rules that are must-have for modern web interfaces
+ */
+export interface EssentialDesignRules {
+  /** Accessibility requirements */
+  accessibility: {
+    /** WCAG contrast ratios */
+    contrastRatios: {
+      aa: {
+        normal: number;  // 4.5:1
+        large: number;   // 3:1
+      };
+      aaa: {
+        normal: number;  // 7:1
+        large: number;   // 4.5:1
+      };
+    };
+    /** Minimum touch target size */
+    minTouchTarget: number; // 44px
+    /** Minimum focus indicator width */
+    minFocusWidth: number; // 2px
+    /** Skip link requirements */
+    skipLinks: boolean;
+  };
+
+  /** Typography essentials */
+  typography: {
+    /** Maximum line length (characters) */
+    maxLineLength: number; // 80-100 characters
+    /** Optimal line height ratios */
+    lineHeightRatios: {
+      headings: number; // 1.2
+      body: number;     // 1.5
+      captions: number; // 1.4
+    };
+    /** Heading hierarchy validation */
+    requireHeadingHierarchy: boolean;
+    /** Maximum heading levels */
+    maxHeadingLevels: number; // 6
+  };
+
+  /** Layout and spacing essentials */
+  layout: {
+    /** Container max widths */
+    containerMaxWidths: {
+      sm: number;   // 640px
+      md: number;   // 768px
+      lg: number;   // 1024px
+      xl: number;   // 1280px
+      '2xl': number; // 1536px
+    };
+    /** Minimum whitespace requirements */
+    minWhitespace: {
+      betweenSections: number; // 48px
+      aroundContent: number;    // 24px
+      betweenElements: number;  // 16px
+    };
+    /** Grid requirements */
+    grid: {
+      columns: number; // 12
+      gutter: number;  // 24px
+      margin: number;  // 16px
+    };
+  };
+
+  /** Color and contrast essentials */
+  color: {
+    /** Prohibited color combinations */
+    prohibitedCombinations: Array<{
+      foreground: string;
+      background: string;
+      reason: string;
+    }>;
+    /** Required color roles */
+    requiredRoles: {
+      primary: boolean;
+      secondary: boolean;
+      success: boolean;
+      warning: boolean;
+      error: boolean;
+      info: boolean;
+    };
+  };
+
+  /** Interaction essentials */
+  interaction: {
+    /** Hover state requirements */
+    requireHoverStates: boolean;
+    /** Focus indicator requirements */
+    requireFocusIndicators: boolean;
+    /** Loading state requirements */
+    requireLoadingStates: boolean;
+    /** Animation duration limits */
+    animationLimits: {
+      min: number; // 150ms
+      max: number; // 300ms
+    };
+    /** Debounce requirements for inputs */
+    inputDebounce: number; // 300ms
+  };
+
+  /** Mobile-first essentials */
+  mobile: {
+    /** Mobile viewport requirements */
+    viewportMeta: boolean;
+    /** Touch gesture support */
+    touchGestures: boolean;
+    /** Swipe gesture requirements */
+    swipeGestures: {
+      horizontal: boolean;
+      vertical: boolean;
+    };
+    /** Pull-to-refresh support */
+    pullToRefresh: boolean;
+  };
+
+  /** Performance essentials */
+  performance: {
+    /** Maximum image size */
+    maxImageSize: {
+      width: number;  // 1920px
+      height: number; // 1080px
+    };
+    /** Lazy loading requirements */
+    lazyLoading: boolean;
+    /** Critical CSS requirements */
+    criticalCss: boolean;
+    /** Bundle size limits */
+    bundleSizeLimit: number; // 200KB
+  };
+
+  /** Content essentials */
+  content: {
+    /** Alt text requirements */
+    requireAltText: boolean;
+    /** Language declaration */
+    requireLangAttribute: boolean;
+    /** Semantic HTML requirements */
+    semanticHtml: boolean;
+    /** Content hierarchy */
+    contentHierarchy: boolean;
+  };
+}
+
+/**
  * Tailwind component constraints
  */
 export interface TailwindComponentConstraints {
@@ -343,6 +490,102 @@ export class DesignRulesFactory {
           sizes: { xs: 12, sm: 16, default: 20, lg: 24, xl: 32, '2xl': 48 }
         },
       },
+      essentialRules: {
+        accessibility: {
+          contrastRatios: {
+            aa: { normal: 4.5, large: 3.0 },
+            aaa: { normal: 7.0, large: 4.5 }
+          },
+          minTouchTarget: 44,
+          minFocusWidth: 2,
+          skipLinks: true
+        },
+        typography: {
+          maxLineLength: 80,
+          lineHeightRatios: {
+            headings: 1.2,
+            body: 1.5,
+            captions: 1.4
+          },
+          requireHeadingHierarchy: true,
+          maxHeadingLevels: 6
+        },
+        layout: {
+          containerMaxWidths: {
+            sm: 640,
+            md: 768,
+            lg: 1024,
+            xl: 1280,
+            '2xl': 1536
+          },
+          minWhitespace: {
+            betweenSections: 48,
+            aroundContent: 24,
+            betweenElements: 16
+          },
+          grid: {
+            columns: 12,
+            gutter: 24,
+            margin: 16
+          }
+        },
+        color: {
+          prohibitedCombinations: [
+            {
+              foreground: '#ffffff',
+              background: '#ffffff',
+              reason: 'White on white - invisible text'
+            },
+            {
+              foreground: '#000000',
+              background: '#000000',
+              reason: 'Black on black - invisible text'
+            }
+          ],
+          requiredRoles: {
+            primary: true,
+            secondary: true,
+            success: true,
+            warning: true,
+            error: true,
+            info: true
+          }
+        },
+        interaction: {
+          requireHoverStates: true,
+          requireFocusIndicators: true,
+          requireLoadingStates: true,
+          animationLimits: {
+            min: 150,
+            max: 300
+          },
+          inputDebounce: 300
+        },
+        mobile: {
+          viewportMeta: true,
+          touchGestures: true,
+          swipeGestures: {
+            horizontal: true,
+            vertical: false
+          },
+          pullToRefresh: false
+        },
+        performance: {
+          maxImageSize: {
+            width: 1920,
+            height: 1080
+          },
+          lazyLoading: true,
+          criticalCss: true,
+          bundleSizeLimit: 204800 // 200KB
+        },
+        content: {
+          requireAltText: true,
+          requireLangAttribute: true,
+          semanticHtml: true,
+          contentHierarchy: true
+        }
+      }
     };
   }
 
@@ -532,5 +775,88 @@ export class DesignRulesFactory {
     }
 
     return true; // Card has no strict size constraints
+  }
+
+  /**
+   * Validates contrast ratio against WCAG standards
+   */
+  static validateContrastRatio(rules: DesignRules, ratio: number, isLargeText: boolean = false): 'aa' | 'aaa' | 'fail' {
+    const { aa, aaa } = rules.essentialRules.accessibility.contrastRatios;
+
+    if (ratio >= aaa.normal && !isLargeText) return 'aaa';
+    if (ratio >= aaa.large && isLargeText) return 'aaa';
+    if (ratio >= aa.normal && !isLargeText) return 'aa';
+    if (ratio >= aa.large && isLargeText) return 'aa';
+
+    return 'fail';
+  }
+
+  /**
+   * Checks if element meets touch target requirements
+   */
+  static validateTouchTarget(rules: DesignRules, width: number, height: number): boolean {
+    const minSize = rules.essentialRules.accessibility.minTouchTarget;
+    return Math.min(width, height) >= minSize;
+  }
+
+  /**
+   * Validates line length against readability standards
+   */
+  static validateLineLength(rules: DesignRules, lineLength: number): boolean {
+    return lineLength <= rules.essentialRules.typography.maxLineLength;
+  }
+
+  /**
+   * Gets recommended line height for text type
+   */
+  static getRecommendedLineHeight(rules: DesignRules, textType: 'headings' | 'body' | 'captions'): number {
+    return rules.essentialRules.typography.lineHeightRatios[textType];
+  }
+
+  /**
+   * Validates container width against responsive breakpoints
+   */
+  static validateContainerWidth(rules: DesignRules, width: number, breakpoint: string): boolean {
+    const maxWidths = rules.essentialRules.layout.containerMaxWidths;
+    const breakpointMaxWidth = maxWidths[breakpoint as keyof typeof maxWidths];
+
+    if (!breakpointMaxWidth) return true; // Unknown breakpoint, allow any width
+    return width <= breakpointMaxWidth;
+  }
+
+  /**
+   * Checks if color combination is prohibited
+   */
+  static isProhibitedColorCombination(rules: DesignRules, foreground: string, background: string): string | null {
+    const combination = rules.essentialRules.color.prohibitedCombinations.find(
+      combo => combo.foreground === foreground && combo.background === background
+    );
+
+    return combination ? combination.reason : null;
+  }
+
+  /**
+   * Validates animation duration
+   */
+  static validateAnimationDuration(rules: DesignRules, duration: number): boolean {
+    const { min, max } = rules.essentialRules.interaction.animationLimits;
+    return duration >= min && duration <= max;
+  }
+
+  /**
+   * Gets performance recommendations
+   */
+  static getPerformanceRecommendations(rules: DesignRules): string[] {
+    const recommendations: string[] = [];
+
+    if (rules.essentialRules.performance.lazyLoading) {
+      recommendations.push('Implement lazy loading for images below the fold');
+    }
+
+    if (rules.essentialRules.performance.criticalCss) {
+      recommendations.push('Extract and inline critical CSS');
+    }
+
+    return recommendations;
   }
 }
