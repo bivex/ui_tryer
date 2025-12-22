@@ -317,11 +317,30 @@ class ContentScript {
       // Generate selector
       const selector = this.generateSelector(element);
 
+      // Extract semantic info
+      const semanticInfo = {
+        tagName: element.tagName.toLowerCase(),
+        attributes: {
+          role: element.getAttribute('role'),
+          href: element.getAttribute('href'),
+          type: element.getAttribute('type'),
+          tabindex: element.getAttribute('tabindex'),
+          onclick: element.getAttribute('onclick'),
+          onmousedown: element.getAttribute('onmousedown'),
+          onmouseup: element.getAttribute('onmouseup'),
+          'aria-label': element.getAttribute('aria-label'),
+          'aria-hidden': element.getAttribute('aria-hidden'),
+        },
+        hasClickHandler: !!(element.getAttribute('onclick') ||
+                           element.getAttribute('onmousedown') || element.getAttribute('onmouseup')),
+      };
+
       return {
         elementId,
         selector,
         boxModel,
         computedStyles: styles,
+        semanticInfo,
         tagName: element.tagName.toLowerCase(),
         textContent: element.textContent?.substring(0, 100) || '',
       };
@@ -396,13 +415,13 @@ class ContentScript {
    */
   private analyzeElementForIssues(element: any, rules: any): any[] {
     const issues = [];
-    const { boxModel, computedStyles, selector, tagName } = element;
+    const { boxModel, computedStyles, selector, tagName, semanticInfo } = element;
 
     // Check spacing
     issues.push(...this.checkSpacingIssues(boxModel, selector, rules));
 
     // Check clickable elements
-    issues.push(...this.checkClickableIssues(boxModel, computedStyles, selector, tagName, rules));
+    issues.push(...this.checkClickableIssues(boxModel, computedStyles, selector, tagName, semanticInfo, rules));
 
     // Check typography
     issues.push(...this.checkTypographyIssues(computedStyles, selector, rules));
@@ -446,15 +465,25 @@ class ContentScript {
   /**
    * Check clickable element issues
    */
-  private checkClickableIssues(boxModel: any, styles: any, selector: string, tagName: string, rules: any): any[] {
+  private checkClickableIssues(boxModel: any, styles: any, selector: string, tagName: string, semanticInfo: any, rules: any): any[] {
     const issues = [];
 
     // Use more sophisticated clickable detection logic
-    const isClickable = this.isElementClickable(styles, tagName, boxModel);
+    const isClickable = this.isElementClickable(styles, tagName, semanticInfo);
 
     if (isClickable) {
       const totalWidth = boxModel.totalWidth;
       const totalHeight = boxModel.totalHeight;
+
+      // Skip size check for elements with tabindex (keyboard accessible)
+      if (semanticInfo?.attributes?.tabindex !== null && semanticInfo?.attributes?.tabindex !== undefined) {
+        return issues; // Don't check size for keyboard-accessible elements
+      }
+
+      // Skip size check for semi-transparent elements (opacity doesn't affect accessibility requirements)
+      if (styles.opacity && parseFloat(styles.opacity) < 0.8) {
+        return issues; // Don't check size for semi-transparent elements
+      }
 
       if (totalWidth < rules.minClickableSize || totalHeight < rules.minClickableSize) {
         issues.push({
@@ -476,10 +505,15 @@ class ContentScript {
   /**
    * Determine if an element is clickable using sophisticated logic
    */
-  private isElementClickable(styles: any, tagName: string, boxModel: any): boolean {
+  private isElementClickable(styles: any, tagName: string, semanticInfo: any): boolean {
     // Elements with pointer-events: none are not clickable
     if (styles.pointerEvents === 'none') {
       return false;
+    }
+
+    // First check semantic information if available
+    if (semanticInfo && this.isSemanticallyClickable(semanticInfo)) {
+      return true;
     }
 
     // Check semantic HTML elements that are inherently clickable
@@ -507,8 +541,43 @@ class ContentScript {
       return false;
     }
 
-    // For elements without explicit cursor styling
+    // For elements without explicit cursor styling or semantic information
     // default to false to avoid false positives for container elements like header, nav, etc.
+    return false;
+  }
+
+  /**
+   * Checks if an element is semantically clickable based on HTML semantics
+   */
+  private isSemanticallyClickable(semanticInfo: any): boolean {
+    const tagName = semanticInfo.tagName;
+    const attributes = semanticInfo.attributes;
+
+    // Check intrinsically interactive HTML elements
+    const interactiveTags = ['button', 'a', 'input', 'select', 'textarea'];
+    if (interactiveTags.includes(tagName)) {
+      return true;
+    }
+
+    // Check ARIA roles that indicate clickable elements
+    const role = attributes.role;
+    if (role) {
+      const clickableRoles = ['button', 'link', 'checkbox', 'radio', 'tab', 'menuitem', 'option'];
+      if (clickableRoles.includes(role)) {
+        return true;
+      }
+    }
+
+    // Check for explicit click handlers
+    if (semanticInfo.hasClickHandler) {
+      return true;
+    }
+
+    // Check for tabindex (indicates keyboard interactivity)
+    if (attributes.tabindex !== null && attributes.tabindex !== undefined) {
+      return true;
+    }
+
     return false;
   }
 

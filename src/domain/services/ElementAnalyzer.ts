@@ -536,10 +536,15 @@ export class ElementAnalyzer {
         return true;
       }
 
-      // Exclude elements with aria-hidden="true"
-      if (semanticInfo.attributes['aria-hidden'] === 'true') {
-        return true;
-      }
+    // Exclude elements with aria-hidden="true"
+    if (semanticInfo.attributes['aria-hidden'] === 'true') {
+      return true;
+    }
+
+    // Exclude elements with tabindex (they are keyboard accessible)
+    if (semanticInfo.attributes.tabindex !== null) {
+      return true;
+    }
     }
 
     // Exclude elements with very small dimensions that are likely decorative
