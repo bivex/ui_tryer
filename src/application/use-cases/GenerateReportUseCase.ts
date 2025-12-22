@@ -7,13 +7,13 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:29:22
- * Last Updated: 2025-12-22T09:03:35
+ * Last Updated: 2025-12-22T11:09:24
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
  */
 
-import { ElementInspection } from '../../domain/entities/ElementInspection';
+import { ElementInspection, Issue } from '../../domain/entities/ElementInspection';
 import { DesignRules } from '../../domain/entities/DesignRules';
 
 /**
@@ -152,15 +152,15 @@ export class GenerateReportUseCase {
     }, {} as Record<string, number>);
 
     // Group issues by category
-    const spacingIssues = issues.filter(issue => issue.type.includes('spacing')).length;
+    const spacingIssues = issues.filter(issue => issue.category === 'spacing').length;
     const sizingIssues = issues.filter(issue =>
-      issue.type.includes('sizing') || issue.type === 'too_small_clickable_area'
+      issue.category === 'sizing'
     ).length;
     const colorIssues = issues.filter(issue =>
-      issue.type === 'color_not_in_palette' || issue.type === 'contrast_ratio_low'
+      issue.category === 'color'
     ).length;
     const responsiveIssues = issues.filter(issue =>
-      issue.type.includes('responsive') || issue.type === 'text_too_small'
+      issue.category === 'responsive'
     ).length;
 
     return {
@@ -173,7 +173,7 @@ export class GenerateReportUseCase {
         sizing: sizingIssues,
         color: colorIssues,
         responsive: responsiveIssues,
-        accessibility: issues.filter(issue => issue.type.includes('accessible') || issue.type === 'contrast_ratio_low').length,
+        accessibility: issues.filter(issue => issue.category === 'accessibility').length,
       },
       overallScore: this.calculateOverallScore(issues, elements),
       grade: this.calculateGrade(issues, elements),
@@ -404,7 +404,7 @@ export class GenerateReportUseCase {
         ${Object.entries(issuesByElement).map(([elementId, elementIssues]) => {
           const firstIssue = elementIssues[0];
           const element = report.issues.find(i => i.elementId === elementId);
-          const positionInfo = this.generatePositionInfo(element, report);
+          const positionInfo = this.generatePositionInfo(firstIssue, report);
 
           return `
             <div class="element-group">
@@ -474,7 +474,7 @@ ${positionInfo}`;
 
 - **Тип проблемы:** ${this.getIssueTypeLabel(issue.type)}
 - **Важность:** ${this.getSeverityLabel(issue.severity)}
-${issue.actualValue ? `- **Текущее значение:** ${issue.actualValue}\n` : ''}${issue.expectedValue ? `- **Ожидаемое значение:** ${issue.expectedValue}\n` : ''}${issue.position ? `- **📍 Позиция проблемы:** x=${issue.position.x}, y=${issue.position.y} (размер: ${issue.position.width}×${issue.position.height})\n` : ''}${issue.suggestedFix ? `- **💡 Рекомендация:** ${issue.suggestedFix}\n` : ''}\n`;
+${issue.actualValue ? `- **Текущее значение:** ${issue.actualValue}\\n` : ''}${issue.expectedValue ? `- **Ожидаемое значение:** ${issue.expectedValue}\\n` : ''}${issue.position ? `- **📍 Позиция проблемы:** x=${issue.position.x}, y=${issue.position.y} (размер: ${issue.position.width}×${issue.position.height})\\n` : ''}${issue.suggestedFix ? `- **💡 Рекомендация:** ${issue.suggestedFix}\\n` : ''}\\n`;
       }
     }
 
@@ -624,14 +624,11 @@ ${todoList}`;
   /**
    * Generates position information for an element
    */
-  private generatePositionInfo(issue: ElementInspection['issues'][0] | undefined, report: UIReport): string {
+  private generatePositionInfo(issue: Issue | undefined, report: UIReport): string {
     if (!issue) return '';
 
-    // Find the element in the report to get its inspection data
-    const elementInspection = report.issues.find(i => i.elementId === issue.elementId);
-
-    if (elementInspection && elementInspection.position) {
-      const pos = elementInspection.position;
+    if (issue.position) {
+      const pos = issue.position;
       return `📍 Позиция: ${pos.x}, ${pos.y} | Размер: ${pos.width}×${pos.height}px`;
     }
 
@@ -690,25 +687,22 @@ ${todoList}`;
   /**
    * Generates position information for markdown
    */
-  private generateMarkdownPositionInfo(issue: ElementInspection['issues'][0], report: UIReport): string {
-    // Find the element in the report to get its inspection data
-    const elementInspection = report.issues.find(i => i.elementId === issue.elementId);
-
-    if (elementInspection && elementInspection.position) {
-      const pos = elementInspection.position;
+  private generateMarkdownPositionInfo(issue: Issue, report: UIReport): string {
+    if (issue.position) {
+      const pos = issue.position;
       return `**📍 Расположение:** x=${pos.x}, y=${pos.y} | **Размер:** ${pos.width}×${pos.height}px
 
 ---
 `;
     }
 
-    return '**📍 Информация о расположении:** недоступна\n\n---\n';
+    return '**📍 Информация о расположении:** недоступна\\n\\n---\\n';
   }
 
   /**
    * Gets specific solution for an issue type
    */
-  private getIssueSolution(issue: ElementInspection['issues'][0]): string {
+  private getIssueSolution(issue: Issue): string {
     const selector = issue.selector;
 
     switch (issue.type) {
@@ -759,7 +753,7 @@ ${todoList}`;
   /**
    * Gets priority level for an issue
    */
-  private getIssuePriority(issue: ElementInspection['issues'][0]): string {
+  private getIssuePriority(issue: Issue): string {
     switch (issue.severity) {
       case 'error':
         return '🚨 КРИТИЧНО';
@@ -787,9 +781,9 @@ ${todoList}`;
    */
   private generateQuickRecommendations(issues: ElementInspection['issues']): string[] {
     const recommendations: string[] = [];
-    const hasSpacingIssues = issues.some(issue => issue.type.includes('spacing'));
-    const hasColorIssues = issues.some(issue => issue.type === 'color_not_in_palette');
-    const hasResponsiveIssues = issues.some(issue => issue.type.includes('responsive'));
+    const hasSpacingIssues = issues.some(issue => issue.category === 'spacing');
+    const hasColorIssues = issues.some(issue => issue.category === 'color');
+    const hasResponsiveIssues = issues.some(issue => issue.category === 'responsive');
 
     if (hasSpacingIssues) {
       recommendations.push('Проверьте отступы на соответствие дизайн-системе (4px/8px grid)');

@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:28:24
- * Last Updated: 2025-12-22T07:41:13
+ * Last Updated: 2025-12-22T11:09:24
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -223,6 +223,7 @@ export class ElementComparator {
         issues.push(ElementInspectionFactory.createIssue(
           'inconsistent_sizing',
           'warning',
+          'consistency',
           `Несоответствие ${diff.property} между элементами: ${elementSelectors}`,
           elements[0].elementId,
           elements[0].selector,
@@ -258,6 +259,7 @@ export class ElementComparator {
         issues.push(ElementInspectionFactory.createIssue(
           'inconsistent_sizing',
           'warning',
+          'consistency',
           `Несоответствие размеров ${diff.property} между элементами: ${elementSelectors}`,
           elements[0].elementId,
           elements[0].selector,
@@ -293,6 +295,7 @@ export class ElementComparator {
         issues.push(ElementInspectionFactory.createIssue(
           'color_not_in_palette',
           'info',
+          'consistency',
           `Разные цвета ${diff.property} между элементами: ${elementSelectors}`,
           elements[0].elementId,
           elements[0].selector,
@@ -328,6 +331,7 @@ export class ElementComparator {
         issues.push(ElementInspectionFactory.createIssue(
           'inconsistent_sizing',
           'warning',
+          'consistency',
           `Несоответствие типографики ${diff.property} между элементами: ${elementSelectors}`,
           elements[0].elementId,
           elements[0].selector,

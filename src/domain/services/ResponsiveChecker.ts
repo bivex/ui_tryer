@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:28:12
- * Last Updated: 2025-12-22T07:41:13
+ * Last Updated: 2025-12-22T11:09:24
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -58,6 +58,7 @@ export class ResponsiveChecker {
       issues.push(ElementInspectionFactory.createIssue(
         'responsive_overflow',
         'error',
+        'responsive',
         `Элемент шире viewport: ${element.boxModel.totalWidth}px > ${viewportSize.width}px`,
         element.elementId,
         element.selector,
@@ -77,6 +78,7 @@ export class ResponsiveChecker {
         issues.push(ElementInspectionFactory.createIssue(
           'text_too_small',
           'error',
+          'responsive',
           `Текст слишком мелкий для мобильных: ${fontSize}px (минимум ${rules.typographyScale.minMobileSize}px)`,
           element.elementId,
           element.selector,
@@ -101,6 +103,7 @@ export class ResponsiveChecker {
         issues.push(ElementInspectionFactory.createIssue(
           'inaccessible_click_area',
           'error',
+          'responsive',
           `Кликабельная область слишком маленькая для мобильных: ${totalWidth}×${totalHeight}px`,
           element.elementId,
           element.selector,
@@ -121,6 +124,7 @@ export class ResponsiveChecker {
         issues.push(ElementInspectionFactory.createIssue(
           'responsive_overflow',
           'warning',
+          'responsive',
           `Фиксированная ширина ${width}px может вызвать проблемы на маленьких экранах`,
           element.elementId,
           element.selector,
@@ -157,6 +161,7 @@ export class ResponsiveChecker {
           issues.push(ElementInspectionFactory.createIssue(
             'layout_shift',
             'warning',
+            'layout',
             `Элементы накладываются: ${elem1.selector} и ${elem2.selector}`,
             elem1.elementId,
             elem1.selector,
@@ -179,6 +184,7 @@ export class ResponsiveChecker {
         issues.push(ElementInspectionFactory.createIssue(
           'responsive_overflow',
           'error',
+          'responsive',
           `Элемент выходит за границы viewport: ${bounds.right > viewportSize.width ? 'справа' : 'снизу'}`,
           element.elementId,
           element.selector,
@@ -284,6 +290,7 @@ export class ResponsiveChecker {
       issues.push(ElementInspectionFactory.createIssue(
         'text_too_small',
         'warning',
+        'responsive',
         `Размер текста может быть слишком мелким для ${toBreakpoint.device}: ${fontSize}px`,
         element.elementId,
         element.selector,

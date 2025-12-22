@@ -19,7 +19,7 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["chrome"],
+    "types": ["chrome", "node"],
     "declaration": false,
     "outDir": "./dist"
   },

@@ -1,4 +1,19 @@
 /**
+ * Copyright (c) 2025 Bivex
+ *
+ * Author: Bivex
+ * Available for contact via email: support@b-b.top
+ * For up-to-date contact information:
+ * https://github.com/bivex
+ *
+ * Created: 2025-12-22T11:01:05
+ * Last Updated: 2025-12-22T11:09:23
+ *
+ * Licensed under the MIT License.
+ * Commercial licensing available upon request.
+ */
+
+/**
  * HTML Structure Analysis - identifies clickable elements from HTML alone
  */
 

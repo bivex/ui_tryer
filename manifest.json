@@ -12,7 +12,8 @@
   ],
 
   "host_permissions": [
-    "<all_urls>"
+    "http://*/*",
+    "https://*/*"
   ],
 
   "action": {
@@ -33,10 +34,11 @@
 
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["http://*/*", "https://*/*"],
       "js": ["content/content.js"],
       "run_at": "document_idle",
-      "all_frames": false
+      "all_frames": false,
+      "match_about_blank": false
     }
   ],
 
@@ -69,7 +71,7 @@
   "web_accessible_resources": [
     {
       "resources": ["content/*"],
-      "matches": ["<all_urls>"]
+      "matches": ["http://*/*", "https://*/*"]
     }
   ],
 

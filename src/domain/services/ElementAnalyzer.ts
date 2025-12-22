@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:28:11
- * Last Updated: 2025-12-22T07:41:13
+ * Last Updated: 2025-12-22T11:01:05
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -94,6 +94,7 @@ export class ElementAnalyzer {
         issues.push(ElementInspectionFactory.createIssue(
           'spacing_not_on_grid',
           'warning',
+          'spacing',
           `${side}-${sideName} (${value}px) не соответствует сетке дизайна`,
           elementId,
           selector,
@@ -111,6 +112,7 @@ export class ElementAnalyzer {
       issues.push(ElementInspectionFactory.createIssue(
         'asymmetric_spacing',
         'info',
+        'spacing',
         'Padding несимметричный - рассмотрите использование симметричных отступов',
         elementId,
         selector,
@@ -125,6 +127,7 @@ export class ElementAnalyzer {
       issues.push(ElementInspectionFactory.createIssue(
         'asymmetric_spacing',
         'info',
+        'spacing',
         'Margin несимметричный - рассмотрите использование симметричных отступов',
         elementId,
         selector,
@@ -175,6 +178,7 @@ export class ElementAnalyzer {
         issues.push(ElementInspectionFactory.createIssue(
           'too_small_clickable_area',
           severity,
+          'accessibility',
           `Кликабельная область слишком маленькая: ${actualWidth}×${actualHeight}px (минимум ${minSize}×${minSize}px)`,
           elementId,
           selector,
@@ -227,6 +231,7 @@ export class ElementAnalyzer {
         issues.push(ElementInspectionFactory.createIssue(
           'inconsistent_sizing',
           'warning',
+          'sizing',
           `Элемент довольно маленький: ${contentWidth}×${contentHeight}px - проверьте, что он достаточно заметен для взаимодействия`,
           elementId,
           selector,
@@ -258,6 +263,7 @@ export class ElementAnalyzer {
       issues.push(ElementInspectionFactory.createIssue(
         'text_too_small',
         'error',
+        'typography',
         `Текст слишком мелкий: ${fontSize}px (минимум ${rules.typographyScale.minMobileSize}px для мобильных)`,
         elementId,
         selector,
@@ -296,6 +302,7 @@ export class ElementAnalyzer {
       issues.push(ElementInspectionFactory.createIssue(
         'color_not_in_palette',
         'info',
+        'color',
         `Цвет текста ${textColor} не входит в палитру Tailwind CSS`,
         elementId,
         selector,
@@ -311,6 +318,7 @@ export class ElementAnalyzer {
       issues.push(ElementInspectionFactory.createIssue(
         'color_not_in_palette',
         'info',
+        'color',
         `Цвет фона ${bgColor} не входит в палитру дизайна`,
         elementId,
         selector,
@@ -347,6 +355,7 @@ export class ElementAnalyzer {
         issues.push(ElementInspectionFactory.createIssue(
           'contrast_ratio_low',
           'error',
+          'accessibility',
           `Низкая контрастность: ${contrast.toFixed(2)}:1 (минимум ${rules.typographyScale.minContrastRatio}:1)`,
           elementId,
           selector,

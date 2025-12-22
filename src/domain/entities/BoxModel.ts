@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:27:32
- * Last Updated: 2025-12-22T07:46:21
+ * Last Updated: 2025-12-22T11:23:54
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -33,6 +33,11 @@ export interface BoxModel {
   /** Total dimensions including all box model properties */
   totalWidth: number;
   totalHeight: number;
+  // Direct access for convenience, derived from 'margin' and 'padding'
+  marginTop: number;
+  marginBottom: number;
+  paddingTop: number;
+  paddingBottom: number;
 }
 
 /**
@@ -72,6 +77,10 @@ export class BoxModelFactory {
       margin,
       totalWidth: contentRect.width + padding.left + padding.right + border.left + border.right + margin.left + margin.right,
       totalHeight: contentRect.height + padding.top + padding.bottom + border.top + border.bottom + margin.top + margin.bottom,
+      marginTop: margin.top,
+      marginBottom: margin.bottom,
+      paddingTop: padding.top,
+      paddingBottom: padding.bottom,
     };
   }
 
