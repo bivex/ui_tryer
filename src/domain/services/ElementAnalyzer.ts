@@ -221,6 +221,11 @@ export class ElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
+    // Skip color validation if disabled
+    if (!rules.featureToggles.checkColorPalette) {
+      return issues;
+    }
+
     // Normalize colors to hex format for comparison
     const textColor = this.normalizeColor(computedStyles.color);
     const bgColor = this.normalizeColor(computedStyles.backgroundColor);

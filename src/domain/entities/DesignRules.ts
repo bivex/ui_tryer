@@ -7,11 +7,37 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:27:51
- * Last Updated: 2025-12-22T08:59:45
+ * Last Updated: 2025-12-22T09:03:58
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
  */
+
+/**
+ * Feature toggles for enabling/disabling different types of design checks
+ */
+export interface DesignFeatureToggles {
+  /** Enable/disable color palette validation */
+  checkColorPalette: boolean;
+
+  /** Enable/disable spacing grid validation */
+  checkSpacingGrid: boolean;
+
+  /** Enable/disable typography size validation */
+  checkTypographySizes: boolean;
+
+  /** Enable/disable accessibility checks */
+  checkAccessibility: boolean;
+
+  /** Enable/disable responsive design checks */
+  checkResponsive: boolean;
+
+  /** Enable/disable component size validation */
+  checkComponentSizes: boolean;
+
+  /** Enable/disable layout and positioning checks */
+  checkLayout: boolean;
+}
 
 /**
  * Domain entity representing Tailwind CSS design system rules and constraints
@@ -47,6 +73,9 @@ export interface DesignRules {
 
   /** Essential design rules (must-have) */
   essentialRules: EssentialDesignRules;
+
+  /** Feature toggles for different types of checks */
+  featureToggles: DesignFeatureToggles;
 }
 
 /**
@@ -585,8 +614,17 @@ export class DesignRulesFactory {
           semanticHtml: true,
           contentHierarchy: true
         }
-      }
-    };
+    },
+    featureToggles: {
+      checkColorPalette: true,
+      checkSpacingGrid: true,
+      checkTypographySizes: true,
+      checkAccessibility: true,
+      checkResponsive: true,
+      checkComponentSizes: true,
+      checkLayout: true,
+    }
+  };
   }
 
   /**

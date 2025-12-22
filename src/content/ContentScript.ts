@@ -1,13 +1,13 @@
 /**
- * Copyright (c) 2025 Pixel Perfect Inspector
+ * Copyright (c) 2025 Bivex
  *
- * Author: Pixel Perfect Inspector
+ * Author: Bivex
  * Available for contact via email: support@b-b.top
  * For up-to-date contact information:
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:47:21
- * Last Updated: 2025-12-22T07:55:40
+ * Last Updated: 2025-12-22T07:56:22
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -153,11 +153,14 @@ class ContentScript {
     try {
       console.log('Generating report for page:', window.location.href);
 
+      // Get settings from payload
+      const settings = payload.settings || {};
+
       // Analyze all elements on the page
-      const elements = this.analyzeAllElements();
+      const elements = this.analyzeAllElements(settings);
 
       // Generate report based on analysis
-      const report = this.generateDetailedReport(elements);
+      const report = this.generateDetailedReport(elements, settings);
 
       // Format report based on requested format
       const format = payload.format || 'json';
@@ -190,7 +193,7 @@ class ContentScript {
   /**
    * Analyze all elements on the page
    */
-  private analyzeAllElements(): any[] {
+  private analyzeAllElements(settings?: any): any[] {
     const elements = document.querySelectorAll('*');
     const analyzedElements = [];
 
@@ -346,7 +349,7 @@ class ContentScript {
   /**
    * Generate detailed report from analyzed elements
    */
-  private generateDetailedReport(elements: any[]): any {
+  private generateDetailedReport(elements: any[], settings?: any): any {
     const issues = [];
     let elementsInspected = 0;
 
@@ -363,6 +366,15 @@ class ContentScript {
         body: { xs: 12, sm: 14, md: 16, lg: 18 },
         minMobileSize: 14,
         minContrastRatio: 4.5,
+      },
+      featureToggles: {
+        checkColorPalette: settings?.checkColorPalette ?? true,
+        checkSpacingGrid: true,
+        checkTypographySizes: true,
+        checkAccessibility: true,
+        checkResponsive: true,
+        checkComponentSizes: true,
+        checkLayout: true,
       },
     };
 

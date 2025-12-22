@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:31:13
- * Last Updated: 2025-12-22T08:56:54
+ * Last Updated: 2025-12-22T09:06:01
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -236,6 +236,7 @@ const Popup: React.FC = () => {
   const [buttonHover, setButtonHover] = useState<string | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isCopyingReport, setIsCopyingReport] = useState(false);
+  const [checkColorPalette, setCheckColorPalette] = useState(true);
 
   useEffect(() => {
     // Initialize popup
@@ -288,6 +289,9 @@ const Popup: React.FC = () => {
           scope: 'current_page',
           format: 'html',
           includeScreenshots: false,
+          settings: {
+            checkColorPalette,
+          },
         },
         source: 'popup',
         target: 'background',
@@ -319,6 +323,9 @@ const Popup: React.FC = () => {
           scope: 'current_page',
           format: 'markdown',
           includeScreenshots: false,
+          settings: {
+            checkColorPalette,
+          },
         },
         source: 'popup',
         target: 'background',
@@ -407,6 +414,48 @@ const Popup: React.FC = () => {
               ? 'Hover over elements to inspect them and reveal UI crimes'
               : 'Click to activate inspection mode and catch design violations'
             }
+          </p>
+        </div>
+
+        {/* Settings Card */}
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>
+            <span>⚙️</span>
+            Settings
+          </h3>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <input
+              type="checkbox"
+              id="colorPaletteCheck"
+              checked={checkColorPalette}
+              onChange={(e) => setCheckColorPalette(e.target.checked)}
+              style={{
+                width: '16px',
+                height: '16px',
+                accentColor: '#3b82f6',
+              }}
+            />
+            <label
+              htmlFor="colorPaletteCheck"
+              style={{
+                fontSize: '14px',
+                color: '#f1f5f9',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              Check color palette compliance
+            </label>
+          </div>
+
+          <p style={{
+            fontSize: '12px',
+            color: '#94a3b8',
+            margin: '0',
+            lineHeight: '1.4',
+          }}>
+            When enabled, Pixel Police will validate that all colors used match the Tailwind CSS color palette.
           </p>
         </div>
 
