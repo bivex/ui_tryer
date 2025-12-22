@@ -152,7 +152,7 @@ export class ElementAnalyzer {
     const issues: Issue[] = [];
 
     // Skip validation for elements that should be excluded
-    if (this.shouldExcludeFromClickableCheck(computedStyles, boxModel, elementId)) {
+    if (this.shouldExcludeFromClickableCheck(computedStyles, boxModel, elementId, semanticInfo)) {
       return issues;
     }
 
@@ -164,7 +164,7 @@ export class ElementAnalyzer {
       const actualHeight = boxModel.totalHeight;
 
       // Skip clickable area check for elements that are likely decorative or part of larger components
-      if (this.shouldSkipClickableAreaCheck(computedStyles, boxModel, elementId, selector)) {
+      if (this.shouldSkipClickableAreaCheck(computedStyles, boxModel, elementId, selector, semanticInfo)) {
         return issues;
       }
 
@@ -457,7 +457,8 @@ export class ElementAnalyzer {
     styles: ComputedStyles,
     boxModel: BoxModel,
     elementId?: string,
-    selector?: string
+    selector?: string,
+    semanticInfo?: ElementSemanticInfo
   ): boolean {
     const width = boxModel.totalWidth;
     const height = boxModel.totalHeight;
@@ -478,8 +479,11 @@ export class ElementAnalyzer {
                                (styles.boxShadow &&
                                 styles.boxShadow !== 'none');
 
-    if (!hasVisualProminence && (width < 32 || height < 32)) {
+    const isSemanticallyClickable = semanticInfo && this.isSemanticallyClickable(semanticInfo);
+
+    if (!hasVisualProminence && (width < 32 || height < 32) && !isSemanticallyClickable) {
       // Small elements without visual styling are likely just text or decorative
+      // UNLESS they are semantically clickable (button, link, etc.)
       return true;
     }
 
@@ -508,7 +512,8 @@ export class ElementAnalyzer {
   private static shouldExcludeFromClickableCheck(
     styles: ComputedStyles,
     boxModel: BoxModel,
-    elementId?: string
+    elementId?: string,
+    semanticInfo?: ElementSemanticInfo
   ): boolean {
     const width = boxModel.totalWidth;
     const height = boxModel.totalHeight;
@@ -523,15 +528,31 @@ export class ElementAnalyzer {
       return true;
     }
 
+    // Exclude elements with non-interactive ARIA roles
+    if (semanticInfo) {
+      const role = semanticInfo.attributes.role;
+      const nonInteractiveRoles = ['presentation', 'none', 'separator', 'img'];
+      if (role && nonInteractiveRoles.includes(role)) {
+        return true;
+      }
+
+      // Exclude elements with aria-hidden="true"
+      if (semanticInfo.attributes['aria-hidden'] === 'true') {
+        return true;
+      }
+    }
+
     // Exclude elements with very small dimensions that are likely decorative
     // Elements smaller than 16x16px are often icons, bullets, or decorative elements
     if (width < 16 || height < 16) {
-      // Only include if they have clear interactive styling
+      // Only include if they have clear interactive styling OR semantic clickability
       const hasInteractiveStyling = styles.cursor === 'pointer' ||
                                    styles.cursor === 'grab' ||
                                    styles.cursor === 'grabbing';
 
-      if (!hasInteractiveStyling) {
+      const isSemanticallyClickable = semanticInfo && this.isSemanticallyClickable(semanticInfo);
+
+      if (!hasInteractiveStyling && !isSemanticallyClickable) {
         return true;
       }
     }
@@ -550,14 +571,16 @@ export class ElementAnalyzer {
                         styles.boxShadow !== '';
 
     // If element has no background, border, or box shadow, it's likely just text
-    // Only include it if it has clear interactive indicators
+    // Only include it if it has clear interactive indicators OR semantic clickability
     if (!hasBackground && !hasBorder && !hasBoxShadow) {
       const isClearlyInteractive = styles.cursor === 'pointer' ||
                                   styles.cursor === 'grab' ||
                                   styles.cursor === 'grabbing' ||
                                   styles.cursor === 'text';
 
-      if (!isClearlyInteractive) {
+      const isSemanticallyClickable = semanticInfo && this.isSemanticallyClickable(semanticInfo);
+
+      if (!isClearlyInteractive && !isSemanticallyClickable) {
         return true;
       }
     }
