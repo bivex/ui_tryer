@@ -15,7 +15,7 @@
 
 import { ResponsiveChecker } from '../../domain/services/ResponsiveChecker';
 import { ElementInspection } from '../../domain/entities/ElementInspection';
-import { DesignRules } from '../../domain/entities/DesignRules';
+import { DesignRules, TailwindBreakpoint } from '../../domain/entities/DesignRules';
 
 /**
  * Use case for checking responsive behavior
@@ -63,6 +63,17 @@ export class CheckResponsiveUseCase {
   }
 
   /**
+   * Gets a representative viewport size for a Tailwind breakpoint
+   */
+  private getViewportForBreakpoint(breakpoint: TailwindBreakpoint): { width: number; height: number } {
+    // Use minWidth as base and add some padding for realistic viewport
+    const width = breakpoint.minWidth;
+    const height = 800; // Standard desktop height, adjust based on device type
+
+    return { width, height };
+  }
+
+  /**
    * Checks responsive behavior when switching breakpoints
    */
   async executeBreakpointTransition(
@@ -80,10 +91,7 @@ export class CheckResponsiveUseCase {
       );
 
       // Check elements at target breakpoint
-      const targetViewport = {
-        width: input.toBreakpoint.width,
-        height: input.toBreakpoint.height,
-      };
+      const targetViewport = this.getViewportForBreakpoint(input.toBreakpoint);
 
       const targetIssues = ResponsiveChecker.checkResponsiveBehavior(
         input.elements,
@@ -128,10 +136,7 @@ export class CheckResponsiveUseCase {
       const results: BreakpointCheckResult[] = [];
 
       for (const breakpoint of input.breakpoints) {
-        const viewportSize = {
-          width: breakpoint.width,
-          height: breakpoint.height,
-        };
+        const viewportSize = this.getViewportForBreakpoint(breakpoint);
 
         const issues = ResponsiveChecker.checkResponsiveBehavior(
           input.elements,
@@ -318,14 +323,14 @@ export interface CheckResponsiveInput {
 
 export interface CheckBreakpointTransitionInput {
   elements: ElementInspection[];
-  fromBreakpoint: DesignRules['breakpoints'][0];
-  toBreakpoint: DesignRules['breakpoints'][0];
+  fromBreakpoint: TailwindBreakpoint;
+  toBreakpoint: TailwindBreakpoint;
   rules: DesignRules;
 }
 
 export interface CheckMultiBreakpointInput {
   elements: ElementInspection[];
-  breakpoints: DesignRules['breakpoints'];
+  breakpoints: TailwindBreakpoint[];
   rules: DesignRules;
 }
 
@@ -344,8 +349,8 @@ export interface CheckResponsiveOutput {
 export interface CheckBreakpointTransitionOutput {
   success: boolean;
   issues: ElementInspection['issues'];
-  fromBreakpoint: DesignRules['breakpoints'][0];
-  toBreakpoint: DesignRules['breakpoints'][0];
+  fromBreakpoint: TailwindBreakpoint;
+  toBreakpoint: TailwindBreakpoint;
   transitionIssues: ElementInspection['issues'];
   targetIssues: ElementInspection['issues'];
   summary: ResponsiveCheckSummary;
@@ -371,7 +376,7 @@ export interface ResponsiveCheckSummary {
 }
 
 export interface BreakpointCheckResult {
-  breakpoint: DesignRules['breakpoints'][0];
+  breakpoint: TailwindBreakpoint;
   issues: ElementInspection['issues'];
   summary: ResponsiveCheckSummary;
   viewportSize: { width: number; height: number };

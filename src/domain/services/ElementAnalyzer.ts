@@ -225,22 +225,22 @@ export class ElementAnalyzer {
     const textColor = this.normalizeColor(computedStyles.color);
     const bgColor = this.normalizeColor(computedStyles.backgroundColor);
 
-    if (textColor && !rules.colorPalette.includes(textColor)) {
+    if (textColor && !ElementAnalyzer.isColorInTailwindPalette(textColor, rules.colorPalette)) {
       issues.push(ElementInspectionFactory.createIssue(
         'color_not_in_palette',
         'info',
-        `Цвет текста ${textColor} не входит в палитру дизайна`,
+        `Цвет текста ${textColor} не входит в палитру Tailwind CSS`,
         elementId,
         selector,
         {
           actualValue: textColor,
-          expectedValue: rules.colorPalette,
+          expectedValue: 'Tailwind color palette',
           context: { type: 'text' },
         }
       ));
     }
 
-    if (bgColor && bgColor !== 'transparent' && !rules.colorPalette.includes(bgColor)) {
+    if (bgColor && bgColor !== 'transparent' && !ElementAnalyzer.isColorInTailwindPalette(bgColor, rules.colorPalette)) {
       issues.push(ElementInspectionFactory.createIssue(
         'color_not_in_palette',
         'info',
@@ -344,5 +344,28 @@ export class ElementAnalyzer {
     const b = parseInt(hex.substr(4, 2), 16) / 255;
 
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  /**
+   * Checks if a color is in the Tailwind color palette
+   */
+  static isColorInTailwindPalette(color: string, palette: any): boolean {
+    // Check semantic colors
+    if (color === palette.white || color === palette.black) {
+      return true;
+    }
+
+    // Check all color groups and their shades
+    for (const colorGroup of Object.values(palette)) {
+      if (typeof colorGroup === 'string') {
+        if (colorGroup === color) return true;
+      } else if (typeof colorGroup === 'object') {
+        for (const shade of Object.values(colorGroup)) {
+          if (shade === color) return true;
+        }
+      }
+    }
+
+    return false;
   }
 }
