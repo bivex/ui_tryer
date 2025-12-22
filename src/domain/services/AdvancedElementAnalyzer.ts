@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T12:15:00
- * Last Updated: 2025-12-22T11:01:05
+ * Last Updated: 2025-12-22T11:34:40
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -96,7 +96,7 @@ export class AdvancedElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
-    if (!styles.color || !styles.backgroundColor) return issues;
+    if (!styles || !styles.color || !styles.backgroundColor) return issues;
 
     const fontSize = parseFloat(styles.fontSize || '16');
     const fontWeight = parseInt(styles.fontWeight || '400');
@@ -161,6 +161,8 @@ export class AdvancedElementAnalyzer {
     rules: AdvancedDesignRules['accessibility']['aria']
   ): Issue[] {
     const issues: Issue[] = [];
+
+    if (!styles) return issues;
 
     // Check invalid ARIA roles
     if (styles.role && !rules.allowedRoles.includes(styles.role)) {
@@ -247,6 +249,8 @@ export class AdvancedElementAnalyzer {
     rules: AdvancedDesignRules['accessibility']['keyboard']
   ): Issue[] {
     const issues: Issue[] = [];
+
+    if (!styles) return issues;
 
     if (this.isInteractiveElement(selector)) {
       // Check for focus indicator
@@ -349,6 +353,8 @@ export class AdvancedElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
+    if (!styles) return issues;
+
     // Extract spacings from current element and context
     const spacings = this.extractVerticalSpacings(boxModel, styles);
 
@@ -406,6 +412,8 @@ export class AdvancedElementAnalyzer {
     context?: ElementContext
   ): Issue[] {
     const issues: Issue[] = [];
+
+    if (!styles) return issues;
 
     const fontSize = parseFloat(styles.fontSize || '16');
     const lineHeight = parseFloat(styles.lineHeight || '1.5');
@@ -472,6 +480,8 @@ export class AdvancedElementAnalyzer {
     rules: any
   ): Issue[] {
     const issues: Issue[] = [];
+
+    if (!styles) return issues;
 
     // Extract colors from current element
     const colors = this.extractColorsFromStyles(styles);
@@ -551,6 +561,8 @@ export class AdvancedElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
+    if (!styles) return issues;
+
     // Prepare nearby elements data
     const nearbyElements = context?.relations?.nearbyElements?.map(nearby => ({
       id: nearby.id,
@@ -603,6 +615,8 @@ export class AdvancedElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
+    if (!styles) return issues;
+
     const analysis = InteractionAnalyzer.analyzeInteraction(
       elementId,
       selector,
@@ -645,6 +659,8 @@ export class AdvancedElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
+    if (!styles) return issues;
+
     if (context?.viewport) {
       const viewportWidth = context.viewport.width;
       const elementWidth = boxModel.totalWidth;
@@ -678,6 +694,8 @@ export class AdvancedElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
+    if (!styles) return issues;
+
     // Check for potential layout shifts
     if (this.isImageElement(selector) && (!styles.width || !styles.height)) {
       issues.push({
@@ -708,6 +726,8 @@ export class AdvancedElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
+    if (!styles) return issues;
+
     // Check for hardcoded values vs design tokens
     if (this.usesHardcodedColor(styles.backgroundColor)) {
       issues.push({
@@ -730,6 +750,21 @@ export class AdvancedElementAnalyzer {
    * Calculate visual metrics for the element
    */
   private static calculateVisualMetrics(styles: any, rules: AdvancedDesignRules): VisualMetrics {
+    if (!styles) {
+      return {
+        visualWeight: 0,
+        focusScore: 0,
+        contrastScore: 0,
+        harmonyScore: 0,
+        opticalAlignment: {
+          visualCenterX: 0,
+          visualCenterY: 0,
+          opticalShiftX: 0,
+          opticalShiftY: 0,
+        },
+      };
+    }
+
     const visualWeight = this.calculateVisualWeight(styles);
     const focusScore = this.calculateFocusScore(styles);
     const contrastScore = this.calculateAPCAScore(styles.color, styles.backgroundColor);
@@ -800,6 +835,8 @@ export class AdvancedElementAnalyzer {
   }
 
   private static extractColorsFromStyles(styles: any): string[] {
+    if (!styles) return [];
+
     const colors: string[] = [];
     if (styles.color) colors.push(styles.color);
     if (styles.backgroundColor) colors.push(styles.backgroundColor);
@@ -819,6 +856,8 @@ export class AdvancedElementAnalyzer {
   }
 
   private static calculateVisualWeight(styles: any): number {
+    if (!styles) return 0;
+
     let weight = 0;
     if (styles.width && styles.height) {
       weight += (parseFloat(styles.width) * parseFloat(styles.height)) / 1000;
@@ -830,6 +869,8 @@ export class AdvancedElementAnalyzer {
   }
 
   private static calculateFocusScore(styles: any): number {
+    if (!styles) return 0;
+
     let score = 0;
     if (styles.fontSize) score += parseFloat(styles.fontSize) / 10;
     if (styles.fontWeight) score += (parseInt(styles.fontWeight) - 400) / 100;
@@ -837,11 +878,15 @@ export class AdvancedElementAnalyzer {
   }
 
   private static calculateHarmonyScore(styles: any): number {
+    if (!styles) return 0;
+
     // Simplified harmony calculation
     return 0.8; // placeholder
   }
 
   private static extractTypographyMetrics(styles: any, rules: any): any {
+    if (!styles) return {};
+
     const fontSize = parseFloat(styles.fontSize);
     const containerWidth = parseFloat(styles.width) || 800;
     const charsPerLine = containerWidth / (fontSize * 0.6);
@@ -863,6 +908,8 @@ export class AdvancedElementAnalyzer {
   }
 
   private static calculateOpticalAlignment(styles: any): any {
+    if (!styles) return {};
+
     // Placeholder for optical alignment calculation
     return {
       visualCenterX: 0,
@@ -887,6 +934,8 @@ export class AdvancedElementAnalyzer {
   }
 
   private static hasAccessibleName(styles: any): boolean {
+    if (!styles) return false;
+
     // Check for aria-label
     if (styles['aria-label'] && styles['aria-label'].trim()) {
       return true;
@@ -944,6 +993,8 @@ export class AdvancedElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
+    if (!styles) return issues;
+
     const analysis = ResponsiveAnalyzer.analyzeResponsive(
       elementId,
       selector,
@@ -985,6 +1036,8 @@ export class AdvancedElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
+    if (!styles) return issues;
+
     const analysis = PerformanceAnalyzer.analyzePerformance(
       elementId,
       selector,
@@ -1025,6 +1078,8 @@ export class AdvancedElementAnalyzer {
     similarElements?: any[]
   ): Issue[] {
     const issues: Issue[] = [];
+
+    if (!styles) return issues;
 
     const analysis = ConsistencyAnalyzer.analyzeConsistency(
       elementId,

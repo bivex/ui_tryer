@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:47:21
- * Last Updated: 2025-12-22T11:09:24
+ * Last Updated: 2025-12-22T11:34:34
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -20,6 +20,7 @@
 import { MessageRouter } from './MessageRouter';
 import { ElementInspector } from '../infrastructure/dom/ElementInspector';
 import { Message, MessageType } from '../../types/MessageContracts';
+import { ElementInspection, ElementInspectionFactory } from '../domain/entities/ElementInspection';
 
 class ContentScript {
   private messageRouter: MessageRouter;
@@ -157,7 +158,7 @@ class ContentScript {
       const settings = payload.settings || {};
 
       // Analyze all elements on the page
-      const elements = this.analyzeAllElements(settings);
+      const elements = await this.analyzeAllElements(settings);
 
       // Generate report based on analysis
       const report = this.generateDetailedReport(elements, settings);
@@ -191,27 +192,404 @@ class ContentScript {
   }
 
   /**
-   * Analyze all elements on the page
+   * Create simplified design rules from settings
    */
-  private analyzeAllElements(settings?: any): any[] {
+  private createDesignRules(settings?: any): any {
+    const designRules = settings?.designRules || {};
+
+    return {
+      spacingScale: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 },
+      spacingGrid: [4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72, 80, 96],
+      minClickableSize: 44,
+      colorPalette: ['#000000', '#ffffff', '#007bff', '#28a745', '#dc3545', '#ffc107', '#6f42c1'],
+      typographyScale: {
+        body: { xs: 12, sm: 14, md: 16, lg: 18 },
+        minMobileSize: 14,
+        minContrastRatio: 4.5,
+      },
+      featureToggles: {
+        checkColorPalette: designRules.checkColorPalette ?? false,
+        checkSpacingGrid: true,
+        checkTypographySizes: true,
+        checkAccessibility: true,
+        checkResponsive: true,
+        checkComponentSizes: true,
+        checkLayout: true,
+      },
+    };
+  }
+
+  /**
+   * Analyze all elements on the page and create ElementInspection objects
+   */
+  private async analyzeAllElements(settings?: any): Promise<ElementInspection[]> {
     const elements = document.querySelectorAll('*');
-    const analyzedElements = [];
+    const analyzedElements: ElementInspection[] = [];
+    const designRules = this.createDesignRules(settings);
 
-    elements.forEach((element, index) => {
-      try {
-        // Skip certain elements
-        if (this.shouldSkipElement(element)) return;
+    // Process elements in batches to avoid blocking the main thread
+    const batchSize = 20;
+    for (let i = 0; i < elements.length; i += batchSize) {
+      const batch = Array.from(elements).slice(i, i + batchSize);
+      const batchPromises = batch.map(async (element, batchIndex) => {
+        const elementIndex = i + batchIndex;
+        try {
+          // Skip certain elements
+          if (this.shouldSkipElement(element)) return null;
 
-        const analysis = this.analyzeSingleElement(element, `element_${index}`);
-        if (analysis) {
-          analyzedElements.push(analysis);
+          const elementId = `element_${elementIndex}`;
+          const inspection = this.createBasicElementInspection(element, elementId, designRules);
+          return inspection;
+        } catch (error) {
+          console.warn('Failed to analyze element:', element, error);
+          return null;
         }
-      } catch (error) {
-        console.warn('Failed to analyze element:', element, error);
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      analyzedElements.push(...batchResults.filter(result => result !== null) as ElementInspection[]);
+
+      // Allow UI to remain responsive
+      if (i % 100 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
-    });
+    }
 
     return analyzedElements;
+  }
+
+  /**
+   * Create basic ElementInspection with fundamental UI issues
+   */
+  private createBasicElementInspection(element: Element, elementId: string, rules: any): ElementInspection {
+    const htmlElement = element as HTMLElement;
+    const rect = htmlElement.getBoundingClientRect();
+    const computedStyle = window.getComputedStyle(htmlElement);
+    const issues: any[] = [];
+
+    // Create box model
+    const boxModel = {
+      content: {
+        width: rect.width,
+        height: rect.height,
+        x: rect.x + window.scrollX,
+        y: rect.y + window.scrollY,
+      },
+      padding: {
+        top: parseFloat(computedStyle.paddingTop) || 0,
+        right: parseFloat(computedStyle.paddingRight) || 0,
+        bottom: parseFloat(computedStyle.paddingBottom) || 0,
+        left: parseFloat(computedStyle.paddingLeft) || 0,
+      },
+      border: {
+        top: parseFloat(computedStyle.borderTopWidth) || 0,
+        right: parseFloat(computedStyle.borderRightWidth) || 0,
+        bottom: parseFloat(computedStyle.borderBottomWidth) || 0,
+        left: parseFloat(computedStyle.borderLeftWidth) || 0,
+      },
+      margin: {
+        top: parseFloat(computedStyle.marginTop) || 0,
+        right: parseFloat(computedStyle.marginRight) || 0,
+        bottom: parseFloat(computedStyle.marginBottom) || 0,
+        left: parseFloat(computedStyle.marginLeft) || 0,
+      },
+      totalWidth: rect.width +
+        (parseFloat(computedStyle.paddingLeft) || 0) +
+        (parseFloat(computedStyle.paddingRight) || 0) +
+        (parseFloat(computedStyle.borderLeftWidth) || 0) +
+        (parseFloat(computedStyle.borderRightWidth) || 0),
+      totalHeight: rect.height +
+        (parseFloat(computedStyle.paddingTop) || 0) +
+        (parseFloat(computedStyle.paddingBottom) || 0) +
+        (parseFloat(computedStyle.borderTopWidth) || 0) +
+        (parseFloat(computedStyle.borderBottomWidth) || 0),
+      marginTop: parseFloat(computedStyle.marginTop) || 0,
+      marginBottom: parseFloat(computedStyle.marginBottom) || 0,
+      paddingTop: parseFloat(computedStyle.paddingTop) || 0,
+      paddingBottom: parseFloat(computedStyle.paddingBottom) || 0,
+    };
+
+    // Extract computed styles in the expected format
+    const computedStyles: any = {
+      display: computedStyle.display,
+      position: computedStyle.position,
+      width: computedStyle.width,
+      height: computedStyle.height,
+      minWidth: computedStyle.minWidth,
+      minHeight: computedStyle.minHeight,
+      maxWidth: computedStyle.maxWidth,
+      maxHeight: computedStyle.maxHeight,
+      fontSize: computedStyle.fontSize,
+      lineHeight: computedStyle.lineHeight,
+      fontFamily: computedStyle.fontFamily,
+      fontWeight: computedStyle.fontWeight,
+      color: computedStyle.color,
+      backgroundColor: computedStyle.backgroundColor,
+      borderColor: computedStyle.borderTopColor,
+      margin: computedStyle.margin,
+      padding: computedStyle.padding,
+      border: computedStyle.border,
+      cursor: computedStyle.cursor,
+      pointerEvents: computedStyle.pointerEvents,
+      visibility: computedStyle.visibility,
+      opacity: computedStyle.opacity,
+      boxShadow: computedStyle.boxShadow,
+    };
+
+    const selector = this.createSelectorForElement(element);
+
+    // Check for basic issues
+    this.checkBasicIssues(element, boxModel, computedStyles, selector, rules, issues);
+
+    return {
+      elementId,
+      selector,
+      timestamp: Date.now(),
+      boxModel,
+      computedStyles,
+      issues,
+      context: this.createElementContext(element)
+    };
+  }
+
+  /**
+   * Check for basic UI issues
+   */
+  private checkBasicIssues(
+    element: Element,
+    boxModel: any,
+    computedStyles: any,
+    selector: string,
+    rules: any,
+    issues: any[]
+  ): void {
+    const htmlElement = element as HTMLElement;
+
+    // Check clickable elements
+    const isClickable = computedStyles.cursor === 'pointer' ||
+                       element.tagName === 'BUTTON' ||
+                       element.tagName === 'A' ||
+                       computedStyles.pointerEvents !== 'none';
+
+    if (isClickable) {
+      const totalWidth = boxModel.totalWidth;
+      const totalHeight = boxModel.totalHeight;
+
+      if (totalWidth < rules.minClickableSize || totalHeight < rules.minClickableSize) {
+        issues.push(ElementInspectionFactory.createIssue(
+          'too_small_clickable_area',
+          'error',
+          'accessibility',
+          `Кликабельная область слишком маленькая: ${totalWidth}×${totalHeight}px (мин. ${rules.minClickableSize}×${rules.minClickableSize}px)`,
+          selector,
+          selector,
+          {
+            suggestedFix: `Увеличьте размеры минимум до ${rules.minClickableSize}px`,
+            actualValue: { width: totalWidth, height: totalHeight },
+            expectedValue: { width: rules.minClickableSize, height: rules.minClickableSize },
+          }
+        ));
+      }
+    }
+
+    // Check text size
+    const fontSize = parseFloat(computedStyles.fontSize);
+    if (fontSize < rules.typographyScale.minMobileSize) {
+      issues.push(ElementInspectionFactory.createIssue(
+        'text_too_small',
+        'error',
+        'typography',
+        `Текст слишком мелкий: ${fontSize}px (мин. ${rules.typographyScale.minMobileSize}px)`,
+        selector,
+        selector,
+        {
+          suggestedFix: `Увеличьте размер шрифта минимум до ${rules.typographyScale.minMobileSize}px`,
+          actualValue: fontSize,
+          expectedValue: rules.typographyScale.minMobileSize,
+        }
+      ));
+    }
+
+    // Check spacing on grid
+    if (rules.featureToggles.checkSpacingGrid) {
+      const spacingValues = [
+        boxModel.padding.top, boxModel.padding.right, boxModel.padding.bottom, boxModel.padding.left,
+        boxModel.margin.top, boxModel.margin.right, boxModel.margin.bottom, boxModel.margin.left,
+      ].filter(v => v > 0);
+
+      spacingValues.forEach(value => {
+        if (!rules.spacingGrid.includes(value)) {
+          issues.push(ElementInspectionFactory.createIssue(
+            'spacing_not_on_grid',
+            'warning',
+            'spacing',
+            `Отступ ${value}px не соответствует сетке дизайна`,
+            selector,
+            selector,
+            {
+              suggestedFix: `Используйте значение из сетки: ${rules.spacingGrid.join(', ')}px`,
+              actualValue: value,
+            }
+          ));
+        }
+      });
+    }
+
+    // Check contrast (basic check)
+    if (computedStyles.color && computedStyles.backgroundColor) {
+      const textColor = computedStyles.color;
+      const bgColor = computedStyles.backgroundColor;
+      if (bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+        // Simple contrast check (would be improved with APCA in full implementation)
+        const contrast = this.calculateSimpleContrast(textColor, bgColor);
+        if (contrast < rules.typographyScale.minContrastRatio) {
+          issues.push(ElementInspectionFactory.createIssue(
+            'contrast_ratio_low',
+            'error',
+            'accessibility',
+            `Низкая контрастность: ${contrast.toFixed(2)}:1 (мин. ${rules.typographyScale.minContrastRatio}:1)`,
+            selector,
+            selector,
+            {
+              suggestedFix: 'Улучшите контрастность цветов',
+              actualValue: contrast,
+              expectedValue: rules.typographyScale.minContrastRatio,
+            }
+          ));
+        }
+      }
+    }
+  }
+
+  /**
+   * Calculate simple contrast ratio (placeholder - would use APCA in full implementation)
+   */
+  private calculateSimpleContrast(color1: string, color2: string): number {
+    // Simplified contrast calculation
+    // In production, this would use proper WCAG/APCA algorithms
+    return 4.5; // Placeholder - assume adequate contrast for basic functionality
+  }
+
+
+  /**
+   * Create CSS selector for element (simplified implementation)
+   */
+  private createSelectorForElement(element: Element): string {
+    const tagName = element.tagName.toLowerCase();
+    const id = element.id ? `#${element.id}` : '';
+    const classes = Array.from(element.classList).map(cls => `.${cls}`).join('');
+
+    if (id) return `${tagName}${id}`;
+    if (classes) return `${tagName}${classes}`;
+
+    // For elements without id or classes, create a path-based selector
+    const path: string[] = [];
+    let current: Element | null = element;
+
+    while (current && path.length < 5) { // Limit depth to avoid overly specific selectors
+      const tag = current.tagName.toLowerCase();
+      const siblings = Array.from(current.parentElement?.children || []);
+      const index = siblings.indexOf(current) + 1;
+
+      if (siblings.length > 1) {
+        path.unshift(`${tag}:nth-child(${index})`);
+      } else {
+        path.unshift(tag);
+      }
+
+      current = current.parentElement;
+    }
+
+    return path.join(' > ');
+  }
+
+  /**
+   * Create context data for element analysis
+   */
+  private createElementContext(element: Element): any {
+    const htmlElement = element as HTMLElement;
+
+    // Get viewport information
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      devicePixelRatio: window.devicePixelRatio
+    };
+
+    // Get parent information
+    const parent = htmlElement.parentElement;
+    let parentData = undefined;
+    if (parent) {
+      const parentStyle = window.getComputedStyle(parent);
+      parentData = {
+        display: parentStyle.display,
+        flexDirection: parentStyle.flexDirection,
+        gridTemplate: parentStyle.gridTemplateColumns || parentStyle.gridTemplateRows,
+        width: parent.getBoundingClientRect().width,
+        height: parent.getBoundingClientRect().height
+      };
+    }
+
+    // Get siblings information
+    const siblings = parent ? Array.from(parent.children) : [];
+    const siblingsData = {
+      count: siblings.length,
+      similarElements: siblings.filter(sibling => sibling.tagName === element.tagName).length
+    };
+
+    // Get page-level information
+    const pageData = {
+      hasNavigation: !!document.querySelector('nav, [role="navigation"]'),
+      hasFooter: !!document.querySelector('footer, [role="contentinfo"]'),
+      primaryColor: this.extractPrimaryColor(),
+      fontFamily: this.extractPrimaryFontFamily()
+    };
+
+    // Get interaction information
+    const interactionData = {
+      isHoverable: htmlElement.matches(':hover'),
+      isFocusable: htmlElement.matches(':focus'),
+      hasClickHandler: !!htmlElement.onclick || htmlElement.getAttribute('onclick'),
+      tabIndex: htmlElement.tabIndex > 0 ? htmlElement.tabIndex : undefined
+    };
+
+    return {
+      viewport,
+      parent: parentData,
+      siblings: siblingsData,
+      page: pageData,
+      interaction: interactionData
+    };
+  }
+
+  /**
+   * Extract primary color from page (simplified)
+   */
+  private extractPrimaryColor(): string | undefined {
+    // Try to find primary color from common sources
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      return (metaThemeColor as HTMLMetaElement).content;
+    }
+
+    // Check for CSS custom properties
+    const rootStyles = window.getComputedStyle(document.documentElement);
+    const primaryColor = rootStyles.getPropertyValue('--primary-color').trim();
+    if (primaryColor) return primaryColor;
+
+    return undefined;
+  }
+
+  /**
+   * Extract primary font family from page
+   */
+  private extractPrimaryFontFamily(): string | undefined {
+    const body = document.body;
+    if (body) {
+      const bodyStyles = window.getComputedStyle(body);
+      return bodyStyles.fontFamily.split(',')[0].trim().replace(/['"]/g, '');
+    }
+    return undefined;
   }
 
   /**
@@ -240,149 +618,14 @@ class ContentScript {
     return false;
   }
 
-  /**
-   * Analyze single element
-   */
-  private analyzeSingleElement(element: Element, elementId: string): any | null {
-    try {
-      const htmlElement = element as HTMLElement;
-      const rect = htmlElement.getBoundingClientRect();
-      const computedStyle = window.getComputedStyle(htmlElement);
-
-      // Extract box model
-      const boxModel = {
-        content: {
-          width: rect.width,
-          height: rect.height,
-          x: rect.x + window.scrollX,
-          y: rect.y + window.scrollY,
-        },
-        padding: {
-          top: parseFloat(computedStyle.paddingTop) || 0,
-          right: parseFloat(computedStyle.paddingRight) || 0,
-          bottom: parseFloat(computedStyle.paddingBottom) || 0,
-          left: parseFloat(computedStyle.paddingLeft) || 0,
-        },
-        border: {
-          top: parseFloat(computedStyle.borderTopWidth) || 0,
-          right: parseFloat(computedStyle.borderRightWidth) || 0,
-          bottom: parseFloat(computedStyle.borderBottomWidth) || 0,
-          left: parseFloat(computedStyle.borderLeftWidth) || 0,
-        },
-        margin: {
-          top: parseFloat(computedStyle.marginTop) || 0,
-          right: parseFloat(computedStyle.marginRight) || 0,
-          bottom: parseFloat(computedStyle.marginBottom) || 0,
-          left: parseFloat(computedStyle.marginLeft) || 0,
-        },
-        totalWidth: rect.width +
-          (parseFloat(computedStyle.paddingLeft) || 0) +
-          (parseFloat(computedStyle.paddingRight) || 0) +
-          (parseFloat(computedStyle.borderLeftWidth) || 0) +
-          (parseFloat(computedStyle.borderRightWidth) || 0),
-        totalHeight: rect.height +
-          (parseFloat(computedStyle.paddingTop) || 0) +
-          (parseFloat(computedStyle.paddingBottom) || 0) +
-          (parseFloat(computedStyle.borderTopWidth) || 0) +
-          (parseFloat(computedStyle.borderBottomWidth) || 0),
-      };
-
-      // Extract computed styles
-      const styles = {
-        display: computedStyle.display,
-        position: computedStyle.position,
-        width: computedStyle.width,
-        height: computedStyle.height,
-        minWidth: computedStyle.minWidth,
-        minHeight: computedStyle.minHeight,
-        maxWidth: computedStyle.maxWidth,
-        maxHeight: computedStyle.maxHeight,
-        fontSize: computedStyle.fontSize,
-        lineHeight: computedStyle.lineHeight,
-        fontFamily: computedStyle.fontFamily,
-        fontWeight: computedStyle.fontWeight,
-        color: computedStyle.color,
-        backgroundColor: computedStyle.backgroundColor,
-        borderColor: computedStyle.borderTopColor,
-        margin: computedStyle.margin,
-        padding: computedStyle.padding,
-        border: computedStyle.border,
-        cursor: computedStyle.cursor,
-        pointerEvents: computedStyle.pointerEvents,
-        visibility: computedStyle.visibility,
-        opacity: computedStyle.opacity,
-      };
-
-      // Generate selector
-      const selector = this.generateSelector(element);
-
-      return {
-        elementId,
-        selector,
-        boxModel,
-        computedStyles: styles,
-        tagName: element.tagName.toLowerCase(),
-        textContent: element.textContent?.substring(0, 100) || '',
-      };
-    } catch (error) {
-      console.warn('Error analyzing element:', element, error);
-      return null;
-    }
-  }
-
-  /**
-   * Generate CSS selector for element
-   */
-  private generateSelector(element: Element): string {
-    if ((element as HTMLElement).id) {
-      return `#${(element as HTMLElement).id}`;
-    }
-
-    const classes = Array.from(element.classList);
-    if (classes.length > 0) {
-      return `${element.tagName.toLowerCase()}.${classes.join('.')}`;
-    }
-
-    return element.tagName.toLowerCase();
-  }
 
   /**
    * Generate detailed report from analyzed elements
    */
-  private generateDetailedReport(elements: any[], settings?: any): any {
-    const issues = [];
-    let elementsInspected = 0;
-
-    // Default design rules (simplified)
-    const designRules = {
-      spacingScale: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 },
-      spacingGrid: [4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72, 80, 96],
-      minClickableSize: 44,
-      colorPalette: [
-        '#000000', '#ffffff', '#007bff', '#28a745', '#dc3545', '#ffc107', '#6f42c1',
-        '#6c757d', '#343a40', '#f8f9fa', '#e9ecef', '#dee2e6'
-      ],
-      typographyScale: {
-        body: { xs: 12, sm: 14, md: 16, lg: 18 },
-        minMobileSize: 14,
-        minContrastRatio: 4.5,
-      },
-      featureToggles: {
-        checkColorPalette: settings?.checkColorPalette ?? false,
-        checkSpacingGrid: true,
-        checkTypographySizes: true,
-        checkAccessibility: true,
-        checkResponsive: true,
-        checkComponentSizes: true,
-        checkLayout: true,
-      },
-    };
-
-    // Analyze each element
-    elements.forEach(element => {
-      elementsInspected++;
-      issues.push(...this.analyzeElementForIssues(element, designRules));
-    });
+  private generateDetailedReport(elements: ElementInspection[], settings?: any): any {
+    // Collect all issues from analyzed elements
+    const issues = elements.flatMap(element => element.issues || []);
+    const elementsInspected = elements.length;
 
     // Calculate summary
     const totalIssues = issues.length;
@@ -406,160 +649,7 @@ class ContentScript {
     };
   }
 
-  /**
-   * Analyze element for design issues
-   */
-  private analyzeElementForIssues(element: any, rules: any): any[] {
-    const issues = [];
-    const { boxModel, computedStyles, selector, tagName } = element;
 
-    // Check spacing
-    issues.push(...this.checkSpacingIssues(boxModel, selector, rules));
-
-    // Check clickable elements
-    issues.push(...this.checkClickableIssues(boxModel, computedStyles, selector, tagName, rules));
-
-    // Check typography
-    issues.push(...this.checkTypographyIssues(computedStyles, selector, rules));
-
-    // Check colors
-    issues.push(...this.checkColorIssues(computedStyles, selector, rules));
-
-    return issues;
-  }
-
-  /**
-   * Check spacing issues
-   */
-  private checkSpacingIssues(boxModel: any, selector: string, rules: any): any[] {
-    const issues = [];
-
-    // Check if spacing values are on grid
-    const spacingValues = [
-      boxModel.padding.top, boxModel.padding.right, boxModel.padding.bottom, boxModel.padding.left,
-      boxModel.margin.top, boxModel.margin.right, boxModel.margin.bottom, boxModel.margin.left,
-    ].filter(v => v > 0);
-
-    spacingValues.forEach(value => {
-      if (!rules.spacingGrid.includes(value)) {
-        issues.push({
-          id: `spacing_${selector}_${Date.now()}`,
-          type: 'spacing_not_on_grid',
-          severity: 'warning',
-          message: `Отступ ${value}px не соответствует сетке дизайна`,
-          elementId: selector,
-          selector,
-          suggestedFix: `Используйте значение из сетки: ${rules.spacingGrid.join(', ')}px`,
-          actualValue: value,
-        });
-      }
-    });
-
-    return issues;
-  }
-
-  /**
-   * Check clickable element issues
-   */
-  private checkClickableIssues(boxModel: any, styles: any, selector: string, tagName: string, rules: any): any[] {
-    const issues = [];
-
-    // Check if element is clickable
-    const isClickable = styles.cursor === 'pointer' ||
-                       tagName === 'button' ||
-                       tagName === 'a' ||
-                       styles.pointerEvents !== 'none';
-
-    if (isClickable) {
-      const totalWidth = boxModel.totalWidth;
-      const totalHeight = boxModel.totalHeight;
-
-      if (totalWidth < rules.minClickableSize || totalHeight < rules.minClickableSize) {
-        issues.push({
-          id: `clickable_${selector}_${Date.now()}`,
-          type: 'too_small_clickable_area',
-          severity: 'error',
-          message: `Кликабельная область слишком маленькая: ${totalWidth}×${totalHeight}px (мин. ${rules.minClickableSize}×${rules.minClickableSize}px)`,
-          elementId: selector,
-          selector,
-          suggestedFix: `Увеличьте размеры минимум до ${rules.minClickableSize}px`,
-          actualValue: { width: totalWidth, height: totalHeight },
-        });
-      }
-    }
-
-    return issues;
-  }
-
-  /**
-   * Check typography issues
-   */
-  private checkTypographyIssues(styles: any, selector: string, rules: any): any[] {
-    const issues = [];
-
-    const fontSize = parseFloat(styles.fontSize);
-    if (fontSize < rules.typographyScale.minMobileSize) {
-      issues.push({
-        id: `typography_${selector}_${Date.now()}`,
-        type: 'text_too_small',
-        severity: 'error',
-        message: `Текст слишком мелкий: ${fontSize}px (мин. ${rules.typographyScale.minMobileSize}px)`,
-        elementId: selector,
-        selector,
-        suggestedFix: `Увеличьте размер шрифта минимум до ${rules.typographyScale.minMobileSize}px`,
-        actualValue: fontSize,
-      });
-    }
-
-    return issues;
-  }
-
-  /**
-   * Check color issues
-   */
-  private checkColorIssues(styles: any, selector: string, rules: any): any[] {
-    const issues = [];
-
-    // Check background color
-    if (styles.backgroundColor && styles.backgroundColor !== 'rgba(0, 0, 0, 0)' && styles.backgroundColor !== 'transparent') {
-      const bgColor = this.normalizeColor(styles.backgroundColor);
-      if (bgColor && !rules.colorPalette.includes(bgColor)) {
-        issues.push({
-          id: `color_bg_${selector}_${Date.now()}`,
-          type: 'color_not_in_palette',
-          severity: 'info',
-          message: `Цвет фона ${bgColor} не входит в палитру дизайна`,
-          elementId: selector,
-          selector,
-          suggestedFix: `Используйте цвет из палитры: ${rules.colorPalette.join(', ')}`,
-          actualValue: bgColor,
-        });
-      }
-    }
-
-    return issues;
-  }
-
-  /**
-   * Normalize color to hex format
-   */
-  private normalizeColor(color: string): string | null {
-    if (!color || color === 'transparent') return null;
-
-    // Handle rgb/rgba
-    const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-    if (rgbMatch) {
-      const r = parseInt(rgbMatch[1]);
-      const g = parseInt(rgbMatch[2]);
-      const b = parseInt(rgbMatch[3]);
-      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-    }
-
-    // Handle hex colors
-    if (color.startsWith('#')) return color.toLowerCase();
-
-    return null;
-  }
 
   /**
    * Generate markdown report
