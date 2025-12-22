@@ -311,6 +311,8 @@ export class GenerateReportUseCase {
    * Generates Markdown report
    */
   private generateMarkdownReport(report: UIReport): string {
+    const todoList = this.generateTodoList(report.issues);
+
     return `# ${report.title}
 
 **URL:** ${report.url}
@@ -341,7 +343,143 @@ ${report.issues.map(issue => `### ${issue.severity.toUpperCase()}: ${issue.messa
 - **Тип:** ${issue.type}
 ${issue.suggestedFix ? `- **Рекомендация:** ${issue.suggestedFix}` : ''}
 
-`).join('\n')}`;
+`).join('\n')}
+
+## 📋 План исправлений
+
+${todoList}`;
+  }
+
+  /**
+   * Generates detailed todo list with specific solutions for each issue
+   */
+  private generateTodoList(issues: ElementInspection['issues']): string {
+    if (issues.length === 0) {
+      return '✅ Поздравляем! Критических проблем не найдено.';
+    }
+
+    const todos: string[] = [];
+    const processedIssues = new Set<string>();
+
+    // Group issues by type and selector to avoid duplicates
+    const groupedIssues = issues.reduce((acc, issue) => {
+      const key = `${issue.type}-${issue.selector}`;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(issue);
+      return acc;
+    }, {} as Record<string, ElementInspection['issues']>);
+
+    // Generate todos for each issue group
+    Object.entries(groupedIssues).forEach(([key, issueGroup]) => {
+      const firstIssue = issueGroup[0];
+      const solution = this.getIssueSolution(firstIssue);
+
+      if (solution && !processedIssues.has(key)) {
+        const priority = this.getIssuePriority(firstIssue);
+        const checked = false; // All items start unchecked
+        const checkbox = checked ? '- [x]' : '- [ ]';
+
+        todos.push(`${checkbox} **${priority}** ${solution}`);
+        processedIssues.add(key);
+      }
+    });
+
+    // Add summary at the end
+    const criticalCount = issues.filter(i => i.severity === 'error').length;
+    const warningCount = issues.filter(i => i.severity === 'warning').length;
+
+    if (criticalCount > 0 || warningCount > 0) {
+      todos.push('');
+      todos.push('## 📊 Сводка исправлений');
+      if (criticalCount > 0) {
+        todos.push(`- **🚨 Критических проблем:** ${criticalCount} (требуют немедленного исправления)`);
+      }
+      if (warningCount > 0) {
+        todos.push(`- **⚠️ Предупреждений:** ${warningCount} (рекомендуется исправить)`);
+      }
+      todos.push(`- **📈 После исправлений оценка вырастет до:** ${this.calculateProjectedScore(issues)}%`);
+    }
+
+    return todos.join('\n');
+  }
+
+  /**
+   * Gets specific solution for an issue type
+   */
+  private getIssueSolution(issue: ElementInspection['issues'][0]): string {
+    const selector = issue.selector;
+
+    switch (issue.type) {
+      case 'too_small_clickable_area':
+        return `Увеличить размер кликабельной области для \`${selector}\` минимум до 44px`;
+
+      case 'color_not_in_palette':
+        return `Заменить цвет для \`${selector}\` на цвет из Tailwind палитры`;
+
+      case 'contrast_ratio_low':
+        return `Улучшить контраст для \`${selector}\` (минимум 4.5:1 для нормального текста)`;
+
+      case 'spacing_not_on_grid':
+        return `Выровнять отступы для \`${selector}\` по 4px сетке (4, 8, 12, 16, 20, 24, 32...)`;
+
+      case 'asymmetric_spacing':
+        return `Исправить асимметричные отступы для \`${selector}\` для визуальной гармонии`;
+
+      case 'text_too_small':
+        return `Увеличить размер текста для \`${selector}\` минимум до 14px для мобильных`;
+
+      case 'missing_alt_text':
+        return `Добавить alt текст для изображения \`${selector}\``;
+
+      case 'inaccessible_click_area':
+        return `Сделать область \`${selector}\` доступной для клавиатуры и скринридеров`;
+
+      case 'spacing_not_in_scale':
+        return `Использовать стандартные отступы из дизайн-системы для \`${selector}\``;
+
+      case 'layout_shift':
+        return `Зафиксировать размеры для \`${selector}\` чтобы избежать сдвига макета`;
+
+      case 'responsive_overflow':
+        return `Исправить переполнение контента для \`${selector}\` на мобильных устройствах`;
+
+      case 'alignment_issue':
+        return `Выровнять элемент \`${selector}\` по сетке дизайна`;
+
+      case 'inconsistent_sizing':
+        return `Привести размеры \`${selector}\` к консистентным значениям`;
+
+      default:
+        return `Исправить проблему "${issue.message}" для \`${selector}\``;
+    }
+  }
+
+  /**
+   * Gets priority level for an issue
+   */
+  private getIssuePriority(issue: ElementInspection['issues'][0]): string {
+    switch (issue.severity) {
+      case 'error':
+        return '🚨 КРИТИЧНО';
+      case 'warning':
+        return '⚠️ ВАЖНО';
+      case 'info':
+        return 'ℹ️ РЕКОМЕНДАЦИЯ';
+      default:
+        return '📝 ЗАМЕТКА';
+    }
+  }
+
+  /**
+   * Calculates projected score after fixing all issues
+   */
+  private calculateProjectedScore(issues: ElementInspection['issues']): number {
+    // Simplified calculation - assume fixing issues improves score
+    const currentScore = this.calculateOverallScore(issues, []);
+    const improvement = Math.min(issues.length * 2, 30); // Max 30% improvement
+    return Math.min(100, Math.round(currentScore + improvement));
   }
 
   /**
