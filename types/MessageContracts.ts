@@ -162,12 +162,12 @@ export interface SaveSettingsRequest {
   settings: ExtensionSettings;
 }
 
-import type { ElementInspection, Issue, IssueType, IssueSeverity, IssueCategory, BoxModel, Rect, Sides, ComputedStyles, ElementComparison, ComparisonDifference, ComparisonSummary, UIReport, ReportSummary, Screenshot, VisualMetrics, ElementContext, ElementRelations } from '../src/domain/entities/ElementInspection';
+import type { ElementInspection, Issue, IssueType, IssueSeverity, IssueCategory, BoxModel, Rect, Sides, ComputedStyles, ElementComparison, ComparisonDifference, ComparisonSummary, UIReport, ReportSummary, Screenshot, VisualMetrics, ElementContext, ElementRelations, AnalysisError } from '../src/domain/entities/ElementInspection';
 import { ElementInspectionFactory } from '../src/domain/entities/ElementInspection';
 import type { AdvancedDesignRules, APCAContrastRules, VerticalRhythmRules, AdvancedTypographyRules, ColorHarmonyRules, LayoutAnalysisRules, AdvancedAccessibilityRules, InteractionRules, ConsistencyRules, ResponsiveRules, PerformanceRules } from '../src/domain/entities/AdvancedDesignRules';
 import type { DesignRules, SpacingScale, Breakpoint, ViewportSize } from '../src/domain/entities/DesignRules';
 
-export type { ElementInspection, Issue, IssueType, IssueSeverity, IssueCategory, BoxModel, Rect, Sides, ComputedStyles, ElementComparison, ComparisonDifference, ComparisonSummary, UIReport, ReportSummary, Screenshot, VisualMetrics, ElementContext, ElementRelations };
+export type { ElementInspection, Issue, IssueType, IssueSeverity, IssueCategory, BoxModel, Rect, Sides, ComputedStyles, ElementComparison, ComparisonDifference, ComparisonSummary, UIReport, ReportSummary, Screenshot, VisualMetrics, ElementContext, ElementRelations, AnalysisError };
 export { ElementInspectionFactory };
 export type { AdvancedDesignRules, APCAContrastRules, VerticalRhythmRules, AdvancedTypographyRules, ColorHarmonyRules, LayoutAnalysisRules, AdvancedAccessibilityRules, InteractionRules, ConsistencyRules, ResponsiveRules, PerformanceRules };
 export type { DesignRules, SpacingScale, Breakpoint, ViewportSize };

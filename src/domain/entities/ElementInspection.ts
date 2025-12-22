@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:27:46
- * Last Updated: 2025-12-22T11:55:42
+ * Last Updated: 2025-12-22T12:01:40
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -413,6 +413,7 @@ export interface UIReport {
   issues: Issue[];
   comparisons: ElementComparison[];
   screenshots: Screenshot[];
+  analysisErrors?: AnalysisError[];
 }
 
 export interface ReportSummary {
@@ -445,4 +446,30 @@ export interface ComparisonSummary {
   totalElements: number;
   consistentProperties: string[];
   inconsistentProperties: string[];
+}
+
+/**
+ * Analysis error that occurred during element processing
+ */
+export interface AnalysisError {
+  /** Unique identifier */
+  id: string;
+
+  /** Error type/category */
+  type: 'tokenization_error' | 'parsing_error' | 'analysis_error' | 'css_parsing_error';
+
+  /** Error message */
+  message: string;
+
+  /** Element that caused the error (if applicable) */
+  elementId?: string;
+
+  /** CSS selector of the problematic element */
+  selector?: string;
+
+  /** Stack trace or additional error details */
+  details?: string;
+
+  /** Timestamp when error occurred */
+  timestamp: number;
 }

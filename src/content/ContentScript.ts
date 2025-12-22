@@ -19,7 +19,7 @@
  */
 import { MessageRouter } from './MessageRouter';
 import { ElementInspector } from '../infrastructure/dom/ElementInspector';
-import { Message, MessageType, ElementInspection, Issue, AdvancedDesignRules, APCAContrastRules, VerticalRhythmRules, AdvancedTypographyRules, ColorHarmonyRules, LayoutAnalysisRules, AdvancedAccessibilityRules, InteractionRules, ConsistencyRules, ResponsiveRules, PerformanceRules, ElementInspectionFactory } from '../../types/MessageContracts';
+import { Message, MessageType, ElementInspection, Issue, AnalysisError, AdvancedDesignRules, APCAContrastRules, VerticalRhythmRules, AdvancedTypographyRules, ColorHarmonyRules, LayoutAnalysisRules, AdvancedAccessibilityRules, InteractionRules, ConsistencyRules, ResponsiveRules, PerformanceRules, ElementInspectionFactory } from '../../types/MessageContracts';
 import { BoxModel } from '../domain/entities/BoxModel';
 import { AdvancedElementAnalyzer } from '../domain/services/AdvancedElementAnalyzer';
 
@@ -27,6 +27,7 @@ class ContentScript {
   private messageRouter: MessageRouter;
   private elementInspector: ElementInspector;
   private isInitialized = false;
+  private analysisErrors: AnalysisError[] = [];
 
   constructor() {
     this.messageRouter = new MessageRouter();
@@ -154,6 +155,9 @@ class ContentScript {
   private async handleGenerateReport(payload: any): Promise<any> {
     try {
       console.log('Generating report for page:', window.location.href);
+
+      // Reset analysis errors for new report
+      this.analysisErrors = [];
 
       // Get settings from payload
       const settings = payload.settings || {};
@@ -443,6 +447,19 @@ class ContentScript {
           return inspection;
         } catch (error) {
           console.warn('Failed to analyze element:', element, error);
+
+          // Collect analysis error
+          const selector = this.createSelectorForElement(element);
+          this.analysisErrors.push({
+            id: `analysis_error_${Date.now()}_${elementIndex}`,
+            type: 'analysis_error',
+            message: error instanceof Error ? error.message : 'Unknown analysis error',
+            elementId: `element_${elementIndex}`,
+            selector,
+            details: error instanceof Error ? error.stack : String(error),
+            timestamp: Date.now(),
+          });
+
           return null;
         }
       });
@@ -807,8 +824,11 @@ class ContentScript {
    */
   private generateDetailedReport(elements: ElementInspection[], settings?: any): any {
     // Collect all issues from analyzed elements
-    const issues = elements.flatMap(element => element.issues || []);
+    let issues = elements.flatMap(element => element.issues || []);
     const elementsInspected = elements.length;
+
+    // Remove duplicate issues
+    issues = this.removeDuplicateIssues(issues);
 
     // Calculate summary
     const totalIssues = issues.length;
@@ -829,6 +849,7 @@ class ContentScript {
       issues,
       comparisons: [],
       screenshots: [],
+      analysisErrors: this.analysisErrors,
     };
   }
 
@@ -852,14 +873,59 @@ class ContentScript {
 
     if (report.issues && report.issues.length > 0) {
       markdown += `## Issues\n\n`;
-      report.issues.forEach((issue: any, index: number) => {
-        markdown += `### ${index + 1}. ${issue.severity.toUpperCase()}: ${issue.message}\n\n`;
-        markdown += `- **Element:** \`${issue.selector}\`\n`;
-        markdown += `- **Type:** ${issue.type}\n`;
-        if (issue.suggestedFix) {
-          markdown += `- **Suggestion:** ${issue.suggestedFix}\n`;
+
+      // Limit issues in markdown report to avoid performance issues
+      const maxIssuesInReport = 100;
+      const issuesToShow = report.issues.slice(0, maxIssuesInReport);
+
+      issuesToShow.forEach((issue: any, index: number) => {
+        try {
+          const severity = issue.severity ? issue.severity.toUpperCase() : 'UNKNOWN';
+          const message = issue.message || 'No message provided';
+          const selector = issue.selector || 'No selector';
+          const type = issue.type || 'unknown_type';
+
+          markdown += `### ${index + 1}. ${severity}: ${message}\n\n`;
+          markdown += `- **Element:** \`${selector}\`\n`;
+          markdown += `- **Type:** ${type}\n`;
+          if (issue.suggestedFix) {
+            markdown += `- **Suggestion:** ${issue.suggestedFix}\n`;
+          }
+          if (issue.actualValue) {
+            markdown += `- **Current value:** ${issue.actualValue}\n`;
+          }
+          if (issue.expectedValue) {
+            markdown += `- **Expected value:** ${issue.expectedValue}\n`;
+          }
+          markdown += `\n`;
+        } catch (error) {
+          console.warn('Error formatting issue:', issue, error);
+          markdown += `### ${index + 1}. Error formatting issue\n\n`;
+          markdown += `- **Raw issue data:** ${JSON.stringify(issue).substring(0, 200)}...\n\n`;
         }
-        markdown += `\n`;
+      });
+
+      if (report.issues.length > maxIssuesInReport) {
+        const remaining = report.issues.length - maxIssuesInReport;
+        markdown += `*Note: ${remaining} additional issues not shown in this report (showing first ${maxIssuesInReport} issues only)*\n\n`;
+      }
+    }
+
+    if (report.analysisErrors && report.analysisErrors.length > 0) {
+      markdown += `## Analysis Errors\n\n`;
+      markdown += `During the analysis process, the following errors occurred:\n\n`;
+      report.analysisErrors.forEach((error: any, index: number) => {
+        markdown += `### ${index + 1}. ${error.type.replace('_', ' ').toUpperCase()}: ${error.message}\n\n`;
+        if (error.selector) {
+          markdown += `- **Element:** \`${error.selector}\`\n`;
+        }
+        if (error.elementId) {
+          markdown += `- **Element ID:** ${error.elementId}\n`;
+        }
+        if (error.details) {
+          markdown += `- **Details:** ${error.details}\n`;
+        }
+        markdown += `- **Time:** ${new Date(error.timestamp).toLocaleTimeString()}\n\n`;
       });
     }
 
@@ -1023,6 +1089,36 @@ class ContentScript {
     if (window !== window.top) return false;
 
     return true;
+  }
+
+  /**
+   * Remove duplicate issues based on key properties
+   */
+  private removeDuplicateIssues(issues: Issue[]): Issue[] {
+    const seen = new Set<string>();
+    const uniqueIssues: Issue[] = [];
+
+    for (const issue of issues) {
+      // Create a unique key based on essential properties
+      let key: string;
+
+      // Special handling for design_token_mismatch issues - group by element and type
+      if (issue.type === 'design_token_mismatch') {
+        // For design token issues, group all similar issues for the same element
+        // This prevents duplicates like multiple font-* properties for the same element
+        key = `${issue.elementId || ''}|${issue.type || ''}|${issue.severity || ''}`;
+      } else {
+        // For other issue types, use the full combination
+        key = `${issue.selector || ''}|${issue.type || ''}|${issue.message || ''}|${issue.severity || ''}|${issue.elementId || ''}`;
+      }
+
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueIssues.push(issue);
+      }
+    }
+
+    return uniqueIssues;
   }
 }
 
