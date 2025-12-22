@@ -234,6 +234,8 @@ const Popup: React.FC = () => {
   const [isInspecting, setIsInspecting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [buttonHover, setButtonHover] = useState<string | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isCopyingReport, setIsCopyingReport] = useState(false);
 
   useEffect(() => {
     // Initialize popup
@@ -278,8 +280,9 @@ const Popup: React.FC = () => {
   };
 
   const generateReport = async () => {
+    setIsGeneratingReport(true);
     try {
-      await chrome.runtime.sendMessage({
+      const response = await chrome.runtime.sendMessage({
         type: 'GENERATE_REPORT_REQUEST',
         payload: {
           scope: 'current_page',
@@ -291,14 +294,24 @@ const Popup: React.FC = () => {
         timestamp: Date.now(),
       });
 
+      if (response.success) {
+        alert('✅ HTML отчет сгенерирован! Проверьте новую вкладку.');
+      } else {
+        alert('❌ Не удалось сгенерировать HTML отчет');
+      }
+
       // Close popup after generating report
       window.close();
     } catch (error) {
       console.error('Failed to generate report:', error);
+      alert('❌ Ошибка при генерации отчета');
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
   const copyMarkdownReport = async () => {
+    setIsCopyingReport(true);
     try {
       const response = await chrome.runtime.sendMessage({
         type: 'GENERATE_REPORT_REQUEST',
@@ -314,12 +327,24 @@ const Popup: React.FC = () => {
 
       if (response.success && response.data?.report) {
         await navigator.clipboard.writeText(response.data.report);
+
+        // Show report content to user
+        const reportPreview = response.data.report.length > 500
+          ? response.data.report.substring(0, 500) + '...\n\n[Полный отчет скопирован в буфер обмена]'
+          : response.data.report;
+
+        alert(`📋 Отчет скопирован в буфер обмена!\n\n${reportPreview}`);
+
+        // Also log full report to console for debugging
+        console.log('Pixel Police Report:', response.data.report);
       } else {
-        alert('Failed to generate report');
+        alert('❌ Не удалось сгенерировать отчет');
       }
     } catch (error) {
       console.error('Failed to copy markdown report:', error);
-      alert('Failed to copy report');
+      alert('❌ Ошибка при копировании отчета');
+    } finally {
+      setIsCopyingReport(false);
     }
   };
 
@@ -401,30 +426,34 @@ const Popup: React.FC = () => {
 
           <button
             onClick={generateReport}
+            disabled={isGeneratingReport}
             onMouseEnter={() => handleButtonHover('report')}
             onMouseLeave={() => handleButtonHover(null)}
             style={{
               ...styles.button,
               ...styles.buttonSecondary,
               ...(buttonHover === 'report' ? styles.buttonSecondaryHover : {}),
+              ...(isGeneratingReport ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
             }}
           >
-            <span>📊</span>
-            <span>Generate HTML Report</span>
+            <span>{isGeneratingReport ? '⏳' : '📊'}</span>
+            <span>{isGeneratingReport ? 'Generating...' : 'Generate HTML Report'}</span>
           </button>
 
           <button
             onClick={copyMarkdownReport}
+            disabled={isCopyingReport}
             onMouseEnter={() => handleButtonHover('copy')}
             onMouseLeave={() => handleButtonHover(null)}
             style={{
               ...styles.button,
               ...styles.buttonOutline,
               ...(buttonHover === 'copy' ? styles.buttonOutlineHover : {}),
+              ...(isCopyingReport ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
             }}
           >
-            <span>📋</span>
-            <span>Copy Markdown Report</span>
+            <span>{isCopyingReport ? '⏳' : '📋'}</span>
+            <span>{isCopyingReport ? 'Copying...' : 'Copy Markdown Report'}</span>
           </button>
         </div>
 
