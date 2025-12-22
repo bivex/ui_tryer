@@ -13,7 +13,7 @@
  * Commercial licensing available upon request.
  */
 
-import { ElementAnalyzer } from '../../domain/services/ElementAnalyzer';
+import { ElementAnalyzer, ElementSemanticInfo } from '../../domain/services/ElementAnalyzer';
 import { DesignRules } from '../../domain/entities/DesignRules';
 import { BoxModel } from '../../domain/entities/BoxModel';
 import { ElementInspection, ComputedStyles } from '../../domain/entities/ElementInspection';
@@ -37,7 +37,8 @@ export class InspectElementUseCase {
         input.selector,
         input.boxModel,
         input.computedStyles,
-        input.rules
+        input.rules,
+        input.semanticInfo
       );
 
       // Add viewport position if provided
@@ -99,7 +100,8 @@ export class InspectElementUseCase {
         input.selector,
         input.boxModel,
         input.computedStyles,
-        input.rules
+        input.rules,
+        input.semanticInfo
       );
 
       // Return only critical issues for quick preview
@@ -148,6 +150,7 @@ export interface InspectElementInput {
   rules: DesignRules;
   viewportPosition?: BoxModel['content'];
   documentPosition?: BoxModel['content'];
+  semanticInfo?: ElementSemanticInfo;
 }
 
 /**
@@ -169,6 +172,7 @@ export interface InspectElementQuickInput {
   boxModel: BoxModel;
   computedStyles: ComputedStyles;
   rules: DesignRules;
+  semanticInfo?: ElementSemanticInfo;
 }
 
 /**

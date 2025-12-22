@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:30:54
- * Last Updated: 2025-12-22T10:11:03
+ * Last Updated: 2025-12-22T10:23:27
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -422,6 +422,37 @@ export class ElementInspector {
         x: rect.x + window.scrollX,
         y: rect.y + window.scrollY,
       },
+      semanticInfo: this.extractSemanticInfo(element),
+    };
+  }
+
+  /**
+   * Extracts semantic information from an element
+   */
+  private extractSemanticInfo(element: HTMLElement): {
+    tagName: string;
+    attributes: Record<string, string | null>;
+    hasClickHandler: boolean;
+  } {
+    const tagName = element.tagName.toLowerCase();
+
+    // Extract relevant attributes
+    const attributes: Record<string, string | null> = {
+      role: element.getAttribute('role'),
+      href: element.getAttribute('href'),
+      type: element.getAttribute('type'),
+      tabindex: element.getAttribute('tabindex'),
+      onclick: element.getAttribute('onclick'),
+      onmousedown: element.getAttribute('onmousedown'),
+      onmouseup: element.getAttribute('onmouseup'),
+      'aria-label': element.getAttribute('aria-label'),
+      'aria-hidden': element.getAttribute('aria-hidden'),
+    };
+
+    return {
+      tagName,
+      attributes,
+      hasClickHandler: this.hasClickHandler(element),
     };
   }
 
@@ -773,6 +804,11 @@ export interface ElementInspectionData {
   computedStyles: Record<string, string>;
   viewportPosition: { width: number; height: number; x: number; y: number };
   documentPosition: { width: number; height: number; x: number; y: number };
+  semanticInfo?: {
+    tagName: string;
+    attributes: Record<string, string | null>;
+    hasClickHandler: boolean;
+  };
 }
 
 export interface ElementDescriptor {

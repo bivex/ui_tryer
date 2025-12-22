@@ -354,6 +354,30 @@ export class ScriptingAdapter {
         opacity: computedStyle.opacity,
       };
 
+      // Extract semantic information
+      const htmlElement = element as HTMLElement;
+      const tagName = htmlElement.tagName.toLowerCase();
+      const hasClickHandler = typeof (htmlElement as any).onclick === 'function' ||
+                             htmlElement.getAttribute('onclick') !== null ||
+                             htmlElement.getAttribute('onmousedown') !== null ||
+                             htmlElement.getAttribute('onmouseup') !== null;
+
+      const semanticInfo = {
+        tagName,
+        attributes: {
+          role: htmlElement.getAttribute('role'),
+          href: htmlElement.getAttribute('href'),
+          type: htmlElement.getAttribute('type'),
+          tabindex: htmlElement.getAttribute('tabindex'),
+          onclick: htmlElement.getAttribute('onclick'),
+          onmousedown: htmlElement.getAttribute('onmousedown'),
+          onmouseup: htmlElement.getAttribute('onmouseup'),
+          'aria-label': htmlElement.getAttribute('aria-label'),
+          'aria-hidden': htmlElement.getAttribute('aria-hidden'),
+        },
+        hasClickHandler,
+      };
+
       return {
         elementId,
         selector: element.tagName.toLowerCase() + (element.id ? `#${element.id}` : ''),
@@ -366,6 +390,7 @@ export class ScriptingAdapter {
           y: rect.y,
         },
         documentPosition: boxModel.content,
+        semanticInfo,
       };
     };
   }
@@ -452,6 +477,11 @@ export interface ElementInspectionData {
   computedStyles: Record<string, string>;
   viewportPosition: { width: number; height: number; x: number; y: number };
   documentPosition: { width: number; height: number; x: number; y: number };
+  semanticInfo?: {
+    tagName: string;
+    attributes: Record<string, string | null>;
+    hasClickHandler: boolean;
+  };
 }
 
 export interface ElementDescriptor {

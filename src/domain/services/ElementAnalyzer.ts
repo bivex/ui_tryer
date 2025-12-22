@@ -25,6 +25,16 @@ import { BoxModel, BoxModelFactory, Sides } from '../entities/BoxModel';
 import { DesignRules, DesignRulesFactory } from '../entities/DesignRules';
 
 /**
+ * Semantic information about an element
+ * Provides HTML semantics that are not available in computed styles
+ */
+export interface ElementSemanticInfo {
+  tagName: string;
+  attributes: Record<string, string | null>;
+  hasClickHandler: boolean;
+}
+
+/**
  * Domain service responsible for analyzing UI elements
  * Contains pure business logic for element inspection and validation
  */
@@ -37,11 +47,12 @@ export class ElementAnalyzer {
     selector: string,
     boxModel: BoxModel,
     computedStyles: ComputedStyles,
-    rules: DesignRules
+    rules: DesignRules,
+    semanticInfo?: ElementSemanticInfo
   ): ElementInspection {
     const issues = [
       ...this.validateSpacing(boxModel, rules, elementId, selector),
-      ...this.validateSizing(boxModel, computedStyles, rules, elementId, selector),
+      ...this.validateSizing(boxModel, computedStyles, rules, elementId, selector, semanticInfo),
       ...this.validateTypography(computedStyles, rules, elementId, selector),
       ...this.validateColors(computedStyles, rules, elementId, selector),
       ...this.validateAccessibility(boxModel, computedStyles, rules, elementId, selector),
@@ -135,24 +146,25 @@ export class ElementAnalyzer {
     computedStyles: ComputedStyles,
     rules: DesignRules,
     elementId: string,
-    selector: string
+    selector: string,
+    semanticInfo?: ElementSemanticInfo
   ): Issue[] {
     const issues: Issue[] = [];
 
     // Skip validation for elements that should be excluded
-    if (this.shouldExcludeFromClickableCheck(computedStyles, boxModel, elementId)) {
+    if (this.shouldExcludeFromClickableCheck(computedStyles, boxModel, elementId, semanticInfo)) {
       return issues;
     }
 
     // Check minimum clickable size - be more selective
-    const isClickable = this.isClickableElement(computedStyles, elementId);
+    const isClickable = this.isClickableElement(computedStyles, elementId, semanticInfo);
     if (isClickable) {
       const minSize = rules.minClickableSize;
       const actualWidth = boxModel.totalWidth;
       const actualHeight = boxModel.totalHeight;
 
       // Skip clickable area check for elements that are likely decorative or part of larger components
-      if (this.shouldSkipClickableAreaCheck(computedStyles, boxModel, elementId, selector)) {
+      if (this.shouldSkipClickableAreaCheck(computedStyles, boxModel, elementId, selector, semanticInfo)) {
         return issues;
       }
 
@@ -181,7 +193,7 @@ export class ElementAnalyzer {
 
     // Only warn about elements that are likely interactive but small
     // Skip elements that are clearly decorative or text-only
-    const isPotentiallyInteractive = this.isClickableElement(computedStyles, elementId) ||
+    const isPotentiallyInteractive = this.isClickableElement(computedStyles, elementId, semanticInfo) ||
                                     (computedStyles.cursor && computedStyles.cursor !== 'default' && computedStyles.cursor !== 'auto');
 
     if (isPotentiallyInteractive &&
@@ -358,43 +370,83 @@ export class ElementAnalyzer {
     return !(top === bottom && left === right);
   }
 
-  private static isClickableElement(styles: ComputedStyles, elementId?: string): boolean {
-    // Check explicit cursor pointer - this is the most reliable indicator
-    if (styles.cursor === 'pointer') {
-      return true;
-    }
-
+  private static isClickableElement(
+    styles: ComputedStyles,
+    elementId?: string,
+    semanticInfo?: ElementSemanticInfo
+  ): boolean {
     // Elements with pointer-events: none are not clickable
     if (styles.pointerEvents === 'none') {
       return false;
     }
 
+    // First check semantic information if available
+    if (semanticInfo && this.isSemanticallyClickable(semanticInfo)) {
+      return true;
+    }
+
+    // Check explicit cursor pointer - this is the most reliable indicator
+    if (styles.cursor === 'pointer') {
+      return true;
+    }
+
     // Check other cursor types that strongly indicate interactivity
-    // Be more restrictive - only allow cursors that clearly suggest clicking
     const definitelyInteractiveCursors = ['pointer', 'grab', 'grabbing'];
     if (definitelyInteractiveCursors.includes(styles.cursor || '')) {
       return true;
     }
 
-    // For other cursor types (text, crosshair, move, etc.), be very conservative
-    // These might indicate interactivity but are often just visual feedback
-    // Only consider them interactive if they have additional visual styling
-    const otherInteractiveCursors = ['text', 'crosshair', 'move', 'copy', 'alias'];
-    if (otherInteractiveCursors.includes(styles.cursor || '')) {
-      // Only consider these interactive if they have visual prominence
-      const hasVisualStyling = (styles.backgroundColor &&
-                               styles.backgroundColor !== 'transparent' &&
-                               styles.backgroundColor !== 'rgba(0, 0, 0, 0)') ||
-                              (styles.border &&
-                               styles.border !== 'none' &&
-                               styles.border !== '0px') ||
-                              (styles.boxShadow &&
-                               styles.boxShadow !== 'none');
-
-      return hasVisualStyling;
+    // Text cursor is for text selection/input, not clicking
+    // Crosshair is typically for drawing/image editing, not general clicking
+    // Move/copy/alias are specialized cursors, not general clicking
+    // These should not be considered clickable
+    const nonClickableCursors = ['text', 'crosshair', 'move', 'copy', 'alias'];
+    if (nonClickableCursors.includes(styles.cursor || '')) {
+      return false;
     }
 
-    // Default to false for elements without clear interactive indicators
+    // For elements without explicit cursor styling or semantic information
+    // default to false to avoid false positives
+    return false;
+  }
+
+  /**
+   * Checks if an element is semantically clickable based on HTML semantics
+   */
+  private static isSemanticallyClickable(semanticInfo: ElementSemanticInfo): boolean {
+    const tagName = semanticInfo.tagName.toLowerCase();
+    const attributes = semanticInfo.attributes;
+
+    // Check intrinsically interactive HTML elements
+    const interactiveTags = ['button', 'a', 'input', 'select', 'textarea'];
+    if (interactiveTags.includes(tagName)) {
+      return true;
+    }
+
+    // Check ARIA roles that indicate clickable elements
+    const role = attributes.role;
+    if (role) {
+      const clickableRoles = ['button', 'link', 'checkbox', 'radio', 'tab', 'menuitem', 'option'];
+      if (clickableRoles.includes(role)) {
+        return true;
+      }
+    }
+
+    // Check for explicit click handlers
+    if (semanticInfo.hasClickHandler) {
+      return true;
+    }
+
+    // Check for tabindex (indicates keyboard interactivity)
+    if (attributes.tabindex !== null) {
+      return true;
+    }
+
+    // Check for onclick, onmousedown, onmouseup attributes
+    if (attributes.onclick || attributes.onmousedown || attributes.onmouseup) {
+      return true;
+    }
+
     return false;
   }
 
@@ -405,7 +457,8 @@ export class ElementAnalyzer {
     styles: ComputedStyles,
     boxModel: BoxModel,
     elementId?: string,
-    selector?: string
+    selector?: string,
+    semanticInfo?: ElementSemanticInfo
   ): boolean {
     const width = boxModel.totalWidth;
     const height = boxModel.totalHeight;
@@ -426,8 +479,11 @@ export class ElementAnalyzer {
                                (styles.boxShadow &&
                                 styles.boxShadow !== 'none');
 
-    if (!hasVisualProminence && (width < 32 || height < 32)) {
+    const isSemanticallyClickable = semanticInfo && this.isSemanticallyClickable(semanticInfo);
+
+    if (!hasVisualProminence && (width < 32 || height < 32) && !isSemanticallyClickable) {
       // Small elements without visual styling are likely just text or decorative
+      // UNLESS they are semantically clickable (button, link, etc.)
       return true;
     }
 
@@ -456,7 +512,8 @@ export class ElementAnalyzer {
   private static shouldExcludeFromClickableCheck(
     styles: ComputedStyles,
     boxModel: BoxModel,
-    elementId?: string
+    elementId?: string,
+    semanticInfo?: ElementSemanticInfo
   ): boolean {
     const width = boxModel.totalWidth;
     const height = boxModel.totalHeight;
@@ -471,15 +528,31 @@ export class ElementAnalyzer {
       return true;
     }
 
+    // Exclude elements with non-interactive ARIA roles
+    if (semanticInfo) {
+      const role = semanticInfo.attributes.role;
+      const nonInteractiveRoles = ['presentation', 'none', 'separator', 'img'];
+      if (role && nonInteractiveRoles.includes(role)) {
+        return true;
+      }
+
+      // Exclude elements with aria-hidden="true"
+      if (semanticInfo.attributes['aria-hidden'] === 'true') {
+        return true;
+      }
+    }
+
     // Exclude elements with very small dimensions that are likely decorative
     // Elements smaller than 16x16px are often icons, bullets, or decorative elements
     if (width < 16 || height < 16) {
-      // Only include if they have clear interactive styling
+      // Only include if they have clear interactive styling OR semantic clickability
       const hasInteractiveStyling = styles.cursor === 'pointer' ||
                                    styles.cursor === 'grab' ||
                                    styles.cursor === 'grabbing';
 
-      if (!hasInteractiveStyling) {
+      const isSemanticallyClickable = semanticInfo && this.isSemanticallyClickable(semanticInfo);
+
+      if (!hasInteractiveStyling && !isSemanticallyClickable) {
         return true;
       }
     }
@@ -498,14 +571,16 @@ export class ElementAnalyzer {
                         styles.boxShadow !== '';
 
     // If element has no background, border, or box shadow, it's likely just text
-    // Only include it if it has clear interactive indicators
+    // Only include it if it has clear interactive indicators OR semantic clickability
     if (!hasBackground && !hasBorder && !hasBoxShadow) {
       const isClearlyInteractive = styles.cursor === 'pointer' ||
                                   styles.cursor === 'grab' ||
                                   styles.cursor === 'grabbing' ||
                                   styles.cursor === 'text';
 
-      if (!isClearlyInteractive) {
+      const isSemanticallyClickable = semanticInfo && this.isSemanticallyClickable(semanticInfo);
+
+      if (!isClearlyInteractive && !isSemanticallyClickable) {
         return true;
       }
     }
