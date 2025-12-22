@@ -20,6 +20,7 @@
 import { MessageRouter } from './MessageRouter';
 import { ElementInspector } from '../infrastructure/dom/ElementInspector';
 import { Message, MessageType } from '../../types/MessageContracts';
+import { DesignRules, DesignRulesFactory } from '../domain/entities/DesignRules';
 
 class ContentScript {
   private messageRouter: MessageRouter;
@@ -160,7 +161,7 @@ class ContentScript {
       const elements = this.analyzeAllElements(settings);
 
       // Generate report based on analysis
-      const report = this.generateDetailedReport(elements, settings);
+      const report = await this.generateDetailedReport(elements, settings);
 
       // Format report based on requested format
       const format = payload.format || 'json';
@@ -349,34 +350,18 @@ class ContentScript {
   /**
    * Generate detailed report from analyzed elements
    */
-  private generateDetailedReport(elements: any[], settings?: any): any {
+  private async generateDetailedReport(elements: any[], settings?: any): Promise<any> {
     const issues = [];
     let elementsInspected = 0;
 
-    // Default design rules (simplified)
-    const designRules = {
-      spacingScale: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 },
-      spacingGrid: [4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72, 80, 96],
-      minClickableSize: 44,
-      colorPalette: [
-        '#000000', '#ffffff', '#007bff', '#28a745', '#dc3545', '#ffc107', '#6f42c1',
-        '#6c757d', '#343a40', '#f8f9fa', '#e9ecef', '#dee2e6'
-      ],
-      typographyScale: {
-        body: { xs: 12, sm: 14, md: 16, lg: 18 },
-        minMobileSize: 14,
-        minContrastRatio: 4.5,
-      },
-      featureToggles: {
-        checkColorPalette: settings?.checkColorPalette ?? false,
-        checkSpacingGrid: true,
-        checkTypographySizes: true,
-        checkAccessibility: true,
-        checkResponsive: true,
-        checkComponentSizes: true,
-        checkLayout: true,
-      },
-    };
+    // Create appropriate design rules based on type
+    const designRulesType = settings?.designRulesType || 'default';
+    const designRules = designRulesType === 'marketing'
+      ? DesignRulesFactory.createMarketingRules()
+      : DesignRulesFactory.createDefault();
+
+    // Override feature toggles based on settings
+    designRules.featureToggles.checkColorPalette = settings?.checkColorPalette ?? false;
 
     // Analyze each element
     elements.forEach(element => {
@@ -464,11 +449,8 @@ class ContentScript {
   private checkClickableIssues(boxModel: any, styles: any, selector: string, tagName: string, rules: any): any[] {
     const issues = [];
 
-    // Check if element is clickable
-    const isClickable = styles.cursor === 'pointer' ||
-                       tagName === 'button' ||
-                       tagName === 'a' ||
-                       styles.pointerEvents !== 'none';
+    // Use more sophisticated clickable detection logic
+    const isClickable = this.isElementClickable(styles, tagName, boxModel);
 
     if (isClickable) {
       const totalWidth = boxModel.totalWidth;
@@ -489,6 +471,45 @@ class ContentScript {
     }
 
     return issues;
+  }
+
+  /**
+   * Determine if an element is clickable using sophisticated logic
+   */
+  private isElementClickable(styles: any, tagName: string, boxModel: any): boolean {
+    // Elements with pointer-events: none are not clickable
+    if (styles.pointerEvents === 'none') {
+      return false;
+    }
+
+    // Check semantic HTML elements that are inherently clickable
+    const clickableTags = ['button', 'a', 'input', 'select', 'textarea'];
+    if (clickableTags.includes(tagName)) {
+      return true;
+    }
+
+    // Check explicit cursor pointer - this is the most reliable indicator
+    if (styles.cursor === 'pointer') {
+      return true;
+    }
+
+    // Check other cursor types that strongly indicate interactivity
+    const definitelyInteractiveCursors = ['pointer', 'grab', 'grabbing'];
+    if (definitelyInteractiveCursors.includes(styles.cursor)) {
+      return true;
+    }
+
+    // Text cursor is for text selection/input, not clicking
+    // Crosshair is typically for drawing/image editing, not general clicking
+    // Move/copy/alias are specialized cursors, not general clicking
+    const nonClickableCursors = ['text', 'crosshair', 'move', 'copy', 'alias'];
+    if (nonClickableCursors.includes(styles.cursor)) {
+      return false;
+    }
+
+    // For elements without explicit cursor styling
+    // default to false to avoid false positives for container elements like header, nav, etc.
+    return false;
   }
 
   /**
@@ -523,7 +544,7 @@ class ContentScript {
     // Check background color
     if (styles.backgroundColor && styles.backgroundColor !== 'rgba(0, 0, 0, 0)' && styles.backgroundColor !== 'transparent') {
       const bgColor = this.normalizeColor(styles.backgroundColor);
-      if (bgColor && !rules.colorPalette.includes(bgColor)) {
+      if (bgColor && !this.isColorInPalette(bgColor, rules.colorPalette)) {
         issues.push({
           id: `color_bg_${selector}_${Date.now()}`,
           type: 'color_not_in_palette',
@@ -531,7 +552,7 @@ class ContentScript {
           message: `Цвет фона ${bgColor} не входит в палитру дизайна`,
           elementId: selector,
           selector,
-          suggestedFix: `Используйте цвет из палитры: ${rules.colorPalette.join(', ')}`,
+          suggestedFix: `Используйте цвет из палитры Tailwind CSS`,
           actualValue: bgColor,
         });
       }
@@ -559,6 +580,23 @@ class ContentScript {
     if (color.startsWith('#')) return color.toLowerCase();
 
     return null;
+  }
+
+  /**
+   * Check if color exists in Tailwind color palette
+   */
+  private isColorInPalette(color: string, colorPalette: any): boolean {
+    // Check if color exists in any of the color groups
+    for (const colorGroup of Object.values(colorPalette)) {
+      if (typeof colorGroup === 'string') {
+        if (colorGroup === color) return true;
+      } else if (typeof colorGroup === 'object' && colorGroup !== null) {
+        if (Object.values(colorGroup).includes(color)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**

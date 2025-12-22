@@ -159,6 +159,10 @@ export interface TailwindTypographyScale {
     '7xl': number;     // 72px
     '8xl': number;     // 96px
     '9xl': number;     // 128px
+    // Marketing-specific sizes
+    'hero'?: number;     // 80px
+    'display'?: number;   // 120px
+    'gigantic'?: number;  // 160px
   };
 
   /** Line height scale (leading-*) */
@@ -188,6 +192,9 @@ export interface TailwindTypographyScale {
 
   /** Minimum contrast ratio */
   minContrastRatio: number;
+
+  /** Maximum line length (characters) for readability */
+  maxLineLength?: number;
 }
 
 /**
@@ -625,6 +632,92 @@ export class DesignRulesFactory {
       checkLayout: true,
     }
   };
+  }
+
+  /**
+   * Creates design rules optimized for marketing pages
+   */
+  static createMarketingRules(): DesignRules {
+    const baseRules = this.createDefault();
+
+    return {
+      ...baseRules,
+      // More flexible spacing grid for marketing layouts
+      spacingGrid: [
+        0, 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128,
+        144, 160, 192, 224, 256, 320, 384, 448, 512, 640, 768, 896, 1024
+      ],
+      // Larger minimum clickable size for CTAs
+      minClickableSize: 48,
+      typographyScale: {
+        ...baseRules.typographyScale,
+        // More flexible font sizes for marketing
+        fontSize: {
+          'xs': 12, 'sm': 14, 'base': 16, 'lg': 18, 'xl': 20, '2xl': 24, '3xl': 30,
+          '4xl': 36, '5xl': 48, '6xl': 60, '7xl': 72, '8xl': 96, '9xl': 128,
+          // Marketing-specific large sizes
+          'hero': 80, 'display': 120, 'gigantic': 160
+        },
+        // More flexible line length for marketing content
+        maxLineLength: 100,
+        // Better line heights for marketing typography
+        lineHeight: {
+          'tight': 1.1, 'snug': 1.25, 'normal': 1.4, 'relaxed': 1.6, 'loose': 1.8
+        }
+      },
+      componentConstraints: {
+        ...baseRules.componentConstraints,
+        // Larger marketing buttons
+        button: {
+          minHeight: { sm: 44, default: 52, lg: 64 },
+          minWidth: 120,
+          paddingX: { sm: 20, default: 24, lg: 32 }
+        },
+        // More generous card padding for marketing
+        card: {
+          padding: 32,
+          borderRadius: 12
+        }
+      },
+      essentialRules: {
+        ...baseRules.essentialRules,
+        layout: {
+          ...baseRules.essentialRules.layout,
+          // More generous whitespace for marketing sections
+          minWhitespace: {
+            betweenSections: 64,
+            aroundContent: 32,
+            betweenElements: 20
+          },
+          // Larger grid for marketing layouts
+          grid: {
+            columns: 12,
+            gutter: 32,
+            margin: 24
+          }
+        },
+        typography: {
+          ...baseRules.essentialRules.typography,
+          // More flexible line length for marketing content
+          maxLineLength: 100,
+          // Better line heights for marketing
+          lineHeightRatios: {
+            headings: 1.1,
+            body: 1.4,
+            captions: 1.3
+          }
+        }
+      },
+      featureToggles: {
+        checkColorPalette: false, // More flexible color usage for marketing
+        checkSpacingGrid: false, // Allow creative spacing in marketing
+        checkTypographySizes: true,
+        checkAccessibility: true,
+        checkResponsive: true,
+        checkComponentSizes: true,
+        checkLayout: true,
+      }
+    };
   }
 
   /**

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Analysis Errors</title>
+    <style>
+        .test-element {
+            width: 100px;
+            height: 100px;
+            background: red;
+        }
+
+        /* Element with problematic CSS that might cause parsing errors */
+        .problematic {
+            width: invalid-value;
+            height: 50px;
+            background: rgb(255, 0, 0);
+        }
+
+        /* Element with complex selectors that might cause issues */
+        div[data-complex="value with spaces and 'quotes'"] {
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Page for Analysis Errors</h1>
+
+    <div class="test-element">Normal element</div>
+
+    <!-- Element that might cause analysis issues -->
+    <div class="problematic" style="width: invalid; height: auto;">Problematic element</div>
+
+    <!-- Element with complex attributes -->
+    <div data-complex="value with spaces and 'quotes'" data-invalid="unclosed>Invalid attribute</div>
+
+    <!-- Element with malformed HTML -->
+    <div class="malformed" <span>Unclosed tag</div>
+
+    <!-- Element with problematic JavaScript -->
+    <div onclick="invalid.function.call()">JavaScript error element</div>
+
+    <script>
+        // Add some dynamic content that might cause analysis issues
+        setTimeout(() => {
+            const dynamicElement = document.createElement('div');
+            dynamicElement.className = 'dynamic';
+            dynamicElement.style.cssText = 'position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);';
+            dynamicElement.textContent = 'Dynamically added element';
+            document.body.appendChild(dynamicElement);
+        }, 1000);
+    </script>
+</body>
+</html>

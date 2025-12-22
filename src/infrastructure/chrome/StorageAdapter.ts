@@ -224,9 +224,10 @@ export class StorageAdapter {
   /**
    * Creates default settings
    */
-  private static createDefaultSettings(): ExtensionSettings {
+  static createDefaultSettings(): ExtensionSettings {
     return {
       designRules: DesignRulesFactory.createDefault(),
+      designRulesType: 'default',
       ui: {
         overlayOpacity: 0.8,
         showGridOverlay: false,
@@ -250,8 +251,15 @@ export class StorageAdapter {
     }
 
     // Basic validation - in real app, would be more comprehensive
+    if (!settings.designRulesType || !['default', 'marketing'].includes(settings.designRulesType)) {
+      settings.designRulesType = 'default';
+    }
+
+    // Create appropriate design rules based on type
     if (!settings.designRules) {
-      settings.designRules = DesignRulesFactory.createDefault();
+      settings.designRules = settings.designRulesType === 'marketing'
+        ? DesignRulesFactory.createMarketingRules()
+        : DesignRulesFactory.createDefault();
     }
 
     if (!settings.ui) {
@@ -323,6 +331,7 @@ import { DesignRulesFactory } from '../../domain/entities/DesignRules';
  */
 export interface ExtensionSettings {
   designRules: DesignRules;
+  designRulesType: 'default' | 'marketing';
   ui: {
     overlayOpacity: number;
     showGridOverlay: boolean;

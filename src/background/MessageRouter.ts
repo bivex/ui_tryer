@@ -18,6 +18,7 @@
  * Handles message routing between extension components
  */
 import { Message } from '../../types/MessageContracts';
+import { StorageAdapter } from '../infrastructure/chrome/StorageAdapter';
 
 export class MessageRouter {
   /**
@@ -47,16 +48,16 @@ export class MessageRouter {
 
         case 'LOAD_SETTINGS_REQUEST':
           // Handle settings request
-          const settings = await this.loadSettings();
+          const settings = await StorageAdapter.loadSettings();
           sendResponse({
             success: true,
-            settings,
+            data: { settings },
           });
           break;
 
         case 'SAVE_SETTINGS_REQUEST':
           // Handle settings save
-          await this.saveSettings(message.payload.settings);
+          await StorageAdapter.saveSettings(message.payload.settings);
           sendResponse({ success: true });
           break;
 
@@ -119,30 +120,6 @@ export class MessageRouter {
     }
   }
 
-  /**
-   * Load settings (placeholder implementation)
-   */
-  private async loadSettings(): Promise<any> {
-    try {
-      const result = await chrome.storage.sync.get(['settings']);
-      return result.settings || this.getDefaultSettings();
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-      return this.getDefaultSettings();
-    }
-  }
-
-  /**
-   * Save settings (placeholder implementation)
-   */
-  private async saveSettings(settings: any): Promise<void> {
-    try {
-      await chrome.storage.sync.set({ settings });
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-      throw error;
-    }
-  }
 
   /**
    * Handle report generation request
@@ -164,6 +141,10 @@ export class MessageRouter {
         return;
       }
 
+      // Load current settings to pass design rules type
+      const settings = await StorageAdapter.loadSettings();
+      const designRulesType = settings?.designRulesType || 'default';
+
       console.log('Sending message to content script on tab:', tab.id);
 
       // Send generate report message to content script of active tab
@@ -174,6 +155,10 @@ export class MessageRouter {
             scope: payload.scope || 'current_page',
             format: payload.format || 'html',
             includeScreenshots: payload.includeScreenshots || false,
+            settings: {
+              checkColorPalette: payload.settings?.checkColorPalette || false,
+              designRulesType: payload.settings?.designRulesType || designRulesType,
+            },
           },
           source: 'background',
           target: 'content',
@@ -194,31 +179,4 @@ export class MessageRouter {
     }
   }
 
-  /**
-   * Get default settings
-   */
-  private getDefaultSettings(): any {
-    return {
-      designRules: {
-        spacingScale: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 },
-        spacingGrid: [4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72, 80, 96],
-        minClickableSize: 44,
-        colorPalette: ['#000000', '#ffffff', '#007bff', '#28a745', '#dc3545', '#ffc107', '#6f42c1'],
-        breakpoints: [
-          { name: 'Mobile', width: 375, height: 667, device: 'mobile' },
-          { name: 'Tablet', width: 768, height: 1024, device: 'tablet' },
-          { name: 'Desktop', width: 1440, height: 900, device: 'desktop' }
-        ]
-      },
-      ui: {
-        overlayOpacity: 0.8,
-        showGridOverlay: false,
-        theme: 'light'
-      },
-      shortcuts: {
-        toggleInspect: 'Ctrl+Shift+I',
-        generateReport: 'Ctrl+Shift+R'
-      }
-    };
-  }
 }

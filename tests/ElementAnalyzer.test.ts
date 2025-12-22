@@ -734,4 +734,55 @@ describe('ElementAnalyzer', () => {
       expect(sizingIssues).toHaveLength(0);
     });
   });
+
+  describe('Marketing Rules', () => {
+    it('should create marketing rules with different spacing grid', () => {
+      const marketingRules = DesignRulesFactory.createMarketingRules();
+      const defaultRules = DesignRulesFactory.createDefault();
+
+      // Marketing rules should have different spacing grid optimized for larger layouts
+      expect(marketingRules.spacingGrid).toContain(640);
+      expect(marketingRules.spacingGrid).toContain(768);
+      expect(marketingRules.spacingGrid).toContain(896);
+      expect(marketingRules.spacingGrid).toContain(1024);
+
+      // Should not contain the smaller increments that are in default rules
+      expect(marketingRules.spacingGrid).not.toContain(1);
+      expect(marketingRules.spacingGrid).not.toContain(10);
+      expect(marketingRules.spacingGrid).not.toContain(14);
+    });
+
+    it('should have larger minimum clickable size for marketing', () => {
+      const marketingRules = DesignRulesFactory.createMarketingRules();
+      const defaultRules = DesignRulesFactory.createDefault();
+
+      expect(marketingRules.minClickableSize).toBeGreaterThan(defaultRules.minClickableSize);
+      expect(marketingRules.minClickableSize).toBe(48);
+    });
+
+    it('should have marketing-specific typography settings', () => {
+      const marketingRules = DesignRulesFactory.createMarketingRules();
+
+      expect(marketingRules.typographyScale.fontSize.hero).toBe(80);
+      expect(marketingRules.typographyScale.fontSize.display).toBe(120);
+      expect(marketingRules.typographyScale.fontSize.gigantic).toBe(160);
+      expect(marketingRules.typographyScale.maxLineLength).toBe(100);
+    });
+
+    it('should have more generous component constraints for marketing', () => {
+      const marketingRules = DesignRulesFactory.createMarketingRules();
+
+      expect(marketingRules.componentConstraints.button.minHeight.default).toBe(52);
+      expect(marketingRules.componentConstraints.button.minWidth).toBe(120);
+      expect(marketingRules.componentConstraints.card.padding).toBe(32);
+    });
+
+    it('should have flexible feature toggles for marketing', () => {
+      const marketingRules = DesignRulesFactory.createMarketingRules();
+
+      expect(marketingRules.featureToggles.checkColorPalette).toBe(false);
+      expect(marketingRules.featureToggles.checkSpacingGrid).toBe(false);
+      expect(marketingRules.featureToggles.checkTypographySizes).toBe(true);
+    });
+  });
 });

@@ -17,6 +17,8 @@
  * Extension controller for background script
  * Manages extension state and high-level operations
  */
+import { StorageAdapter } from '../infrastructure/chrome/StorageAdapter';
+
 export class ExtensionController {
   private inspectionModeEnabled = false;
   private currentTabId?: number;
@@ -26,10 +28,10 @@ export class ExtensionController {
    */
   async initializeDefaultSettings(): Promise<void> {
     try {
-      const existing = await chrome.storage.sync.get(['settings']);
-      if (!existing.settings) {
-        const defaultSettings = this.getDefaultSettings();
-        await chrome.storage.sync.set({ settings: defaultSettings });
+      const existing = await StorageAdapter.loadSettings();
+      if (!existing) {
+        const defaultSettings = StorageAdapter.createDefaultSettings();
+        await StorageAdapter.saveSettings(defaultSettings);
         console.log('Default settings initialized');
       }
     } catch (error) {
@@ -149,33 +151,4 @@ export class ExtensionController {
     }
   }
 
-  /**
-   * Get default settings
-   */
-  private getDefaultSettings(): any {
-    return {
-      designRules: {
-        spacingScale: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 },
-        spacingGrid: [4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72, 80, 96],
-        minClickableSize: 44,
-        colorPalette: ['#000000', '#ffffff', '#007bff', '#28a745', '#dc3545', '#ffc107', '#6f42c1'],
-        breakpoints: [
-          { name: 'Mobile', width: 375, height: 667, device: 'mobile' },
-          { name: 'Tablet', width: 768, height: 1024, device: 'tablet' },
-          { name: 'Desktop', width: 1440, height: 900, device: 'desktop' }
-        ]
-      },
-      ui: {
-        overlayOpacity: 0.8,
-        showGridOverlay: false,
-        theme: 'light'
-      },
-      shortcuts: {
-        toggleInspect: 'Ctrl+Shift+I',
-        generateReport: 'Ctrl+Shift+R'
-      },
-      version: '1.0.0',
-      lastModified: Date.now(),
-    };
-  }
 }

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тестовая страница с плохим дизайном - UI Inspector</title>
+    <style>
+        /* Сброс стилей */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Плохой spacing - несоответствие сетке */
+        .bad-spacing {
+            margin: 7px; /* Не кратно 4px/8px */
+            padding: 13px; /* Не кратно 4px/8px */
+        }
+
+        /* Неправильные цвета */
+        .bad-colors {
+            background-color: #ff69b4; /* Розовый не из палитры */
+            color: #00ff00; /* Зеленый текст */
+            border: 2px solid #ffff00; /* Желтая рамка */
+        }
+
+        /* Слишком маленькие кликабельные элементы */
+        .too-small-button {
+            width: 30px; /* Менее 44px */
+            height: 25px; /* Менее 44px */
+            background: #007bff;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Несимметричные отступы */
+        .asymmetric-padding {
+            padding: 5px 20px 15px 8px; /* Разные значения */
+        }
+
+        /* Фиксированная ширина, которая сломается на мобильных */
+        .fixed-width-bad {
+            width: 800px; /* Слишком широкая для мобильных */
+            margin: 0 auto;
+            background: #fff;
+            border: 1px solid #ccc;
+        }
+
+        /* Плохая типографика */
+        .bad-typography {
+            font-size: 10px; /* Слишком мелкий текст */
+            line-height: 1.1; /* Плохой line-height */
+            color: #999; /* Слабый контраст */
+        }
+
+        /* Неправильное использование цветов */
+        .color-mismatch {
+            background: #8b4513; /* Коричневый */
+            color: #daa520; /* Золотой текст */
+        }
+
+        /* Элементы без достаточного spacing */
+        .no-spacing {
+            margin: 3px;
+            padding: 2px;
+        }
+
+        /* Переполнение контейнера */
+        .overflow-container {
+            width: 300px;
+            height: 100px;
+            background: #f8f8f8;
+            overflow: hidden;
+        }
+
+        .overflow-content {
+            width: 400px; /* Больше чем контейнер */
+            height: 50px;
+            background: #ffcccc;
+        }
+
+        /* Неправильное позиционирование */
+        .bad-positioning {
+            position: relative;
+            left: 15px; /* Не кратно сетке */
+            top: 7px; /* Не кратно сетке */
+        }
+
+        /* Несоответствие размеров кнопок */
+        .inconsistent-buttons {
+            margin-bottom: 10px;
+        }
+
+        .button-small {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .button-large {
+            padding: 20px 40px; /* Слишком большой padding */
+            font-size: 18px;
+        }
+
+        /* Проблемы с responsive */
+        .not-responsive {
+            width: 1000px; /* Слишком широкая для мобильных */
+            margin: 0 auto;
+        }
+
+        /* Слабый контраст */
+        .low-contrast {
+            background: #ffffff;
+            color: #f5f5f5; /* Почти белый на белом */
+            padding: 10px;
+        }
+
+        /* Плохое использование border-radius */
+        .bad-radius {
+            border-radius: 3px 10px 5px 15px; /* Несимметричные углы */
+            background: #e0e0e0;
+            padding: 12px;
+        }
+
+        /* Элементы с неправильным z-index */
+        .bad-zindex {
+            position: relative;
+            z-index: -1; /* Отрицательный z-index */
+            background: #ffff99;
+            padding: 10px;
+        }
+
+        /* Таблица с плохим дизайном */
+        .bad-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 9px 0; /* Не кратно сетке */
+        }
+
+        .bad-table th, .bad-table td {
+            border: 1px solid #ccc;
+            padding: 6px; /* Не кратно 8px */
+            text-align: left;
+        }
+
+        .bad-table th {
+            background: #f2f2f2;
+            font-weight: normal; /* Не bold */
+        }
+
+        /* Форма с проблемами */
+        .bad-form {
+            margin: 11px 0; /* Не кратно 8px */
+        }
+
+        .bad-form input {
+            width: 200px; /* Фиксированная ширина */
+            padding: 3px; /* Слишком мало padding */
+            border: 1px solid #999;
+            margin-bottom: 5px;
+        }
+
+        .bad-form button {
+            width: 80px; /* Слишком узкая кнопка */
+            height: 20px; /* Слишком низкая */
+            background: #666;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Карточки с несоответствующими размерами */
+        .card-container {
+            display: flex;
+            gap: 7px; /* Не кратно 8px */
+            margin: 15px 0;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .card-small {
+            width: 180px;
+            padding: 12px;
+        }
+
+        .card-large {
+            width: 350px;
+            padding: 25px;
+        }
+
+        /* Навигация с плохим spacing */
+        .bad-nav {
+            background: #333;
+            padding: 0;
+        }
+
+        .bad-nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+
+        .bad-nav li {
+            margin-right: 13px; /* Не кратно 8px */
+        }
+
+        .bad-nav a {
+            color: white;
+            text-decoration: none;
+            padding: 9px 14px; /* Несимметричный padding */
+            display: block;
+        }
+
+        .bad-nav a:hover {
+            background: #555;
+        }
+
+        /* Footer с неправильным spacing */
+        .bad-footer {
+            background: #222;
+            color: white;
+            padding: 17px; /* Не кратно 8px */
+            text-align: center;
+            margin-top: 23px; /* Не кратно 8px */
+        }
+
+        /* Медиа-запросы с проблемами */
+        @media (max-width: 768px) {
+            .container {
+                padding: 5px; /* Слишком мало для мобильных */
+            }
+
+            .fixed-width-bad {
+                width: 100%; /* Правильно, но другие проблемы остаются */
+            }
+        }
+
+        /* Анимации с плохими timing */
+        @keyframes bad-animation {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(5px); } /* Слишком мало движения */
+            100% { transform: translateX(0); }
+        }
+
+        .animated-bad {
+            animation: bad-animation 0.1s ease-in-out; /* Слишком быстро */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav class="bad-nav">
+                <ul>
+                    <li><a href="#" class="animated-bad">Главная</a></li>
+                    <li><a href="#" class="animated-bad">О нас</a></li>
+                    <li><a href="#" class="animated-bad">Контакты</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section class="bad-spacing bad-colors">
+                <h1>Тестовая страница с плохим дизайном</h1>
+                <p class="bad-typography">Эта страница создана специально для тестирования UI Inspector расширения. Она содержит множество нарушений дизайн-системы.</p>
+            </section>
+
+            <section class="asymmetric-padding color-mismatch">
+                <h2>Секция с проблемами</h2>
+                <p>Этот текст имеет плохой контраст и неправильные отступы.</p>
+
+                <div class="overflow-container">
+                    <div class="overflow-content">
+                        <p>Этот контент выходит за границы контейнера!</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="fixed-width-bad">
+                <h2>Фиксированная ширина</h2>
+                <p>Этот блок имеет фиксированную ширину 800px, что сломается на мобильных устройствах.</p>
+
+                <div class="inconsistent-buttons">
+                    <button class="button-small">Маленькая кнопка</button>
+                    <button class="button-large">Огромная кнопка с слишком большим padding</button>
+                </div>
+            </section>
+
+            <section class="low-contrast bad-radius">
+                <h2>Плохой контраст</h2>
+                <p>Этот текст имеет очень низкий контраст и будет плохо читаться.</p>
+                <button class="too-small-button">OK</button>
+            </section>
+
+            <section>
+                <h2>Несоответствующие карточки</h2>
+                <div class="card-container">
+                    <div class="card card-small">
+                        <h3>Маленькая карточка</h3>
+                        <p>Размер: 180px ширина, 12px padding</p>
+                    </div>
+                    <div class="card card-large">
+                        <h3>Большая карточка</h3>
+                        <p>Размер: 350px ширина, 25px padding</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bad-form">
+                <h2>Форма с проблемами</h2>
+                <form>
+                    <input type="text" placeholder="Имя" class="no-spacing"><br>
+                    <input type="email" placeholder="Email" class="no-spacing"><br>
+                    <button type="submit" class="too-small-button">Отправить</button>
+                </form>
+            </section>
+
+            <section>
+                <h2>Таблица с плохим дизайном</h2>
+                <table class="bad-table">
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Цена</th>
+                            <th>Количество</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Товар 1</td>
+                            <td>$10</td>
+                            <td>5</td>
+                        </tr>
+                        <tr>
+                            <td>Товар 2</td>
+                            <td>$25</td>
+                            <td>3</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="not-responsive">
+                <h2>Неадаптивный контент</h2>
+                <p>Этот блок имеет фиксированную ширину 1000px и не адаптируется под мобильные устройства.</p>
+                <div class="bad-positioning">
+                    <p>Этот элемент неправильно позиционирован.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer class="bad-footer">
+            <p>&copy; 2025 Тестовая страница с плохим дизайном</p>
+        </footer>
+    </div>
+
+    <script>
+        // Плохой JavaScript код для демонстрации
+        console.log('Тестовая страница загружена');
+
+        // Проблематичная функция
+        function badFunction() {
+            var elements = document.querySelectorAll('.card');
+            for(var i = 0; i < elements.length; i++) {
+                elements[i].style.backgroundColor = '#ff0000'; // Внезапная смена цвета
+            }
+        }
+
+        // Автоматический вызов через 3 секунды
+        setTimeout(badFunction, 3000);
+    </script>
+</body>
+</html>

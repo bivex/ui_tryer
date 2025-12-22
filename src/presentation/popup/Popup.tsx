@@ -237,6 +237,7 @@ const Popup: React.FC = () => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isCopyingReport, setIsCopyingReport] = useState(false);
   const [checkColorPalette, setCheckColorPalette] = useState(false);
+  const [designRulesType, setDesignRulesType] = useState<'default' | 'marketing'>('default');
 
   useEffect(() => {
     // Initialize popup
@@ -253,8 +254,10 @@ const Popup: React.FC = () => {
         timestamp: Date.now(),
       });
 
-      if (response.success) {
-        // Set initial state based on settings
+      if (response.success && response.data?.settings) {
+        const settings = response.data.settings;
+        setCheckColorPalette(settings.designRules?.featureToggles?.checkColorPalette || false);
+        setDesignRulesType(settings.designRulesType || 'default');
         setIsInspecting(false); // Default to false
       }
     } catch (error) {
@@ -291,6 +294,7 @@ const Popup: React.FC = () => {
           includeScreenshots: false,
           settings: {
             checkColorPalette,
+            designRulesType,
           },
         },
         source: 'popup',
@@ -298,10 +302,16 @@ const Popup: React.FC = () => {
         timestamp: Date.now(),
       });
 
-      if (response.success) {
-        alert('✅ HTML отчет сгенерирован! Проверьте новую вкладку.');
+      if (response.success && response.data?.success) {
+        // Create a new tab with the HTML report
+        const htmlContent = response.data.report;
+        const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
+
+        await chrome.tabs.create({ url: dataUrl });
+        alert('✅ HTML отчет сгенерирован! Открыта новая вкладка.');
       } else {
-        alert('❌ Не удалось сгенерировать HTML отчет');
+        const errorMsg = response.data?.error || response.error || 'Неизвестная ошибка';
+        alert('❌ Не удалось сгенерировать HTML отчет: ' + errorMsg);
       }
 
       // Close popup after generating report
@@ -325,6 +335,7 @@ const Popup: React.FC = () => {
           includeScreenshots: false,
           settings: {
             checkColorPalette,
+            designRulesType,
           },
         },
         source: 'popup',
@@ -452,10 +463,77 @@ const Popup: React.FC = () => {
           <p style={{
             fontSize: '12px',
             color: '#94a3b8',
-            margin: '0',
+            margin: '0 0 16px 0',
             lineHeight: '1.4',
           }}>
             When enabled, Pixel Police will validate that all colors used match the Tailwind CSS color palette.
+          </p>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{
+              fontSize: '14px',
+              color: '#f1f5f9',
+              display: 'block',
+              marginBottom: '8px',
+              fontWeight: '500',
+            }}>
+              Design Rules Type
+            </label>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}>
+                <input
+                  type="radio"
+                  name="designRulesType"
+                  value="default"
+                  checked={designRulesType === 'default'}
+                  onChange={(e) => setDesignRulesType(e.target.value as 'default' | 'marketing')}
+                  style={{
+                    width: '14px',
+                    height: '14px',
+                    accentColor: '#3b82f6',
+                  }}
+                />
+                <span style={{ fontSize: '13px', color: '#cbd5e1' }}>Default</span>
+              </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}>
+                <input
+                  type="radio"
+                  name="designRulesType"
+                  value="marketing"
+                  checked={designRulesType === 'marketing'}
+                  onChange={(e) => setDesignRulesType(e.target.value as 'default' | 'marketing')}
+                  style={{
+                    width: '14px',
+                    height: '14px',
+                    accentColor: '#3b82f6',
+                  }}
+                />
+                <span style={{ fontSize: '13px', color: '#cbd5e1' }}>Marketing</span>
+              </label>
+            </div>
+          </div>
+
+          <p style={{
+            fontSize: '12px',
+            color: '#94a3b8',
+            margin: '0',
+            lineHeight: '1.4',
+          }}>
+            Marketing rules are optimized for landing pages with larger typography, flexible spacing, and more generous component constraints.
           </p>
         </div>
 

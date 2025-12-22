@@ -96,6 +96,9 @@ export interface Issue {
   /** Severity level */
   severity: IssueSeverity;
 
+  /** Category for grouping issues */
+  category?: IssueCategory;
+
   /** Human-readable message */
   message: string;
 
@@ -137,12 +140,85 @@ export type IssueType =
   | 'layout_shift'
   | 'contrast_ratio_low'
   | 'missing_alt_text'
-  | 'inaccessible_click_area';
+  | 'inaccessible_click_area'
+  // Advanced issue types
+  | 'apca_contrast_insufficient'
+  | 'ari-incomplete'
+  | 'focus_indicator_missing'
+  | 'keyboard_navigation_broken'
+  | 'vertical_rhythm_broken'
+  | 'line_height_inadequate'
+  | 'orphans_widows_present'
+  | 'color_semantics_wrong'
+  | 'color_harmony_broken'
+  | 'layout_shift_potential'
+  | 'design_token_mismatch'
+  | 'line_length_too_long';
 
 /**
  * Severity levels for issues
  */
-export type IssueSeverity = 'info' | 'warning' | 'error';
+export type IssueSeverity = 'info' | 'warning' | 'error' | 'critical';
+
+/**
+ * Categories for grouping issues
+ */
+export type IssueCategory =
+  | 'accessibility'
+  | 'usability'
+  | 'performance'
+  | 'design_consistency'
+  | 'responsive_design'
+  | 'typography'
+  | 'color'
+  | 'layout'
+  | 'interaction';
+
+/**
+ * Context information about the element being analyzed
+ */
+export interface ElementContext {
+  /** Element's semantic role */
+  role?: string;
+  /** Element's ARIA attributes */
+  ariaAttributes?: Record<string, string>;
+  /** Parent element context */
+  parentContext?: ElementContext;
+  /** Child elements count */
+  childrenCount?: number;
+  /** Element's position in DOM hierarchy */
+  depth?: number;
+}
+
+/**
+ * Visual metrics for advanced analysis
+ */
+export interface VisualMetrics {
+  /** Perceived visual weight */
+  visualWeight: number;
+  /** Color saturation level */
+  saturation: number;
+  /** Color lightness level */
+  lightness: number;
+  /** Text contrast ratio */
+  contrastRatio?: number;
+  /** Element's focal prominence */
+  focalProminence: number;
+}
+
+/**
+ * Relationships between elements
+ */
+export interface ElementRelations {
+  /** Parent element ID */
+  parentId?: string;
+  /** Child element IDs */
+  childrenIds: string[];
+  /** Sibling element IDs */
+  siblingIds: string[];
+  /** Related elements by design patterns */
+  relatedElements: string[];
+}
 
 /**
  * Factory for creating ElementInspection instances
