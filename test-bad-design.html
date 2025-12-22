@@ -262,6 +262,261 @@
         .animated-bad {
             animation: bad-animation 0.1s ease-in-out; /* Слишком быстро */
         }
+
+        /* === ДОПОЛНИТЕЛЬНЫЕ СЛУЧАИ FALSE POSITIVES === */
+
+        /* Маленькие декоративные элементы */
+        .decorative-icon {
+            width: 16px;
+            height: 16px;
+            background: #666;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .bullet-point {
+            width: 6px;
+            height: 6px;
+            background: #333;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        /* Элементы с кастомными курсорами */
+        .custom-cursor {
+            cursor: crosshair; /* Для рисования, не кликабельно */
+            padding: 20px;
+            background: #f0f0f0;
+        }
+
+        .zoom-cursor {
+            cursor: zoom-in; /* Для зума, не кликабельно */
+            width: 100px;
+            height: 100px;
+            background: #e0e0e0;
+        }
+
+        /* Отключенные элементы форм */
+        .disabled-input {
+            width: 200px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .readonly-input {
+            width: 200px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            background: #fafafa;
+            cursor: text;
+        }
+
+        /* Скрытые элементы */
+        .aria-hidden {
+            width: 50px;
+            height: 50px;
+            background: #ff0000;
+            position: absolute;
+            left: -9999px;
+        }
+
+        .visually-hidden {
+            width: 50px;
+            height: 50px;
+            background: #00ff00;
+            position: absolute;
+            clip: rect(0, 0, 0, 0);
+            overflow: hidden;
+        }
+
+        /* Элементы с tabindex */
+        .focusable-span {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #e0e0e0;
+            cursor: pointer;
+        }
+
+        .tabindex-negative {
+            width: 40px;
+            height: 40px;
+            background: #ffff00;
+            display: inline-block;
+        }
+
+        /* Маленькие текстовые элементы */
+        .small-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        .micro-text {
+            font-size: 9px;
+            color: #999;
+            line-height: 1.2;
+        }
+
+        /* Элементы с overflow */
+        .scrollable-content {
+            width: 200px;
+            height: 80px;
+            overflow: auto;
+            border: 1px solid #ccc;
+            padding: 4px;
+        }
+
+        .clipped-content {
+            width: 150px;
+            height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            border: 1px solid #ddd;
+        }
+
+        /* Фиксированные элементы */
+        .fixed-overlay {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 30px;
+            height: 30px;
+            background: #ff6600;
+            border-radius: 50%;
+            z-index: 1000;
+        }
+
+        .sticky-element {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            height: 25px;
+            background: #333;
+            color: white;
+            font-size: 12px;
+        }
+
+        /* Элементы с transform */
+        .transformed-element {
+            width: 60px;
+            height: 60px;
+            background: #9900ff;
+            transform: rotate(45deg);
+            cursor: pointer;
+        }
+
+        /* SVG элементы */
+        .svg-container {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ccc;
+        }
+
+        .svg-container svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Элементы с pointer-events */
+        .pointer-events-none {
+            width: 50px;
+            height: 50px;
+            background: #ff00ff;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .pointer-events-none::after {
+            content: "No Pointer Events";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            color: white;
+        }
+
+        /* Маленькие интерактивные элементы */
+        .micro-button {
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            border: none;
+            cursor: pointer;
+            border-radius: 50%;
+            padding: 0;
+        }
+
+        .inline-action {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: #28a745;
+            cursor: pointer;
+            margin-left: 4px;
+        }
+
+        /* Элементы с role атрибутами */
+        .role-button {
+            padding: 6px 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            cursor: default; /* Нет курсора pointer */
+        }
+
+        .role-link {
+            color: #007bff;
+            text-decoration: none;
+            cursor: default; /* Нет курсора pointer */
+        }
+
+        /* Абсолютно позиционированные элементы */
+        .absolute-small {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background: #dc3545;
+            top: 10px;
+            right: 10px;
+        }
+
+        /* Элементы с низкой opacity */
+        .semi-transparent {
+            width: 40px;
+            height: 40px;
+            background: #6f42c1;
+            opacity: 0.3;
+            cursor: pointer;
+        }
+
+        /* Элементы без фона и границ */
+        .text-only-interactive {
+            color: #007bff;
+            cursor: pointer;
+            padding: 2px 4px;
+            background: transparent;
+            border: none;
+        }
+
+        /* Элементы с нестандартными курсорами */
+        .help-cursor {
+            cursor: help;
+            padding: 20px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+
+        .wait-cursor {
+            cursor: wait;
+            padding: 20px;
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+        }
     </style>
 </head>
 <body>
@@ -369,6 +624,186 @@
         <footer class="bad-footer">
             <p>&copy; 2025 Тестовая страница с плохим дизайном</p>
         </footer>
+
+        <!-- === ДОПОЛНИТЕЛЬНЫЕ ТЕСТОВЫЕ СЛУЧАИ FALSE POSITIVES === -->
+
+        <section>
+            <h2>Декоративные элементы (ложные срабатывания)</h2>
+            <div style="margin-bottom: 20px;">
+                <span class="decorative-icon"></span>
+                <span>Декоративная иконка (16x16px) - не должна быть кликабельной</span>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <span class="bullet-point"></span>
+                <span>Маркер списка (6x6px) - не должен быть кликабельным</span>
+            </div>
+        </section>
+
+        <section>
+            <h2>Элементы с кастомными курсорами</h2>
+            <div class="custom-cursor">
+                Элемент с курсором crosshair (для рисования) - не кликабельный
+            </div>
+            <div class="zoom-cursor" style="margin-top: 10px;">
+                Элемент с курсором zoom-in - не кликабельный
+            </div>
+        </section>
+
+        <section>
+            <h2>Отключенные элементы форм</h2>
+            <div style="margin-bottom: 20px;">
+                <label>Отключенный input:</label><br>
+                <input type="text" value="Отключен" disabled class="disabled-input">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label>Readonly input:</label><br>
+                <input type="text" value="Только чтение" readonly class="readonly-input">
+            </div>
+        </section>
+
+        <section>
+            <h2>Скрытые элементы</h2>
+            <div style="position: relative; margin-bottom: 20px;">
+                <p>ARIA-hidden элемент (скрыт для скринридеров):</p>
+                <div class="aria-hidden" aria-hidden="true">Скрытый</div>
+            </div>
+            <div style="position: relative; margin-bottom: 20px;">
+                <p>Визуально скрытый элемент:</p>
+                <div class="visually-hidden">Скрытый</div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Элементы с tabindex</h2>
+            <div style="margin-bottom: 20px;">
+                <span class="focusable-span" tabindex="0">Фокусируемый span (tabindex=0)</span>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <span class="tabindex-negative" tabindex="-1">Tabindex -1 (не в порядке табуляции)</span>
+            </div>
+        </section>
+
+        <section>
+            <h2>Маленькие текстовые элементы</h2>
+            <div style="margin-bottom: 20px;">
+                <div class="small-label">Маленькая подпись (11px)</div>
+                <input type="text" placeholder="Поле ввода">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <span class="micro-text">Микротекст (9px) в интерфейсе</span>
+            </div>
+        </section>
+
+        <section>
+            <h2>Элементы с overflow</h2>
+            <div style="margin-bottom: 20px;">
+                <p>Прокручиваемый контент:</p>
+                <div class="scrollable-content">
+                    Это длинный текст который должен прокручиваться внутри контейнера с ограниченной высотой. Такой элемент может показаться слишком маленьким для взаимодействия, но на самом деле он вполне функционален.
+                </div>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p>Обрезанный текст:</p>
+                <div class="clipped-content">
+                    Это очень длинный текст который будет обрезан с многоточием в конце строки
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Фиксированные и позиционированные элементы</h2>
+            <div style="margin-bottom: 20px;">
+                <p>Фиксированный оверлей (должен быть в правом верхнем углу):</p>
+                <div class="fixed-overlay"></div>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p>Sticky элемент:</p>
+                <div class="sticky-element">Sticky заголовок</div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Элементы с transform</h2>
+            <div class="transformed-element">
+                Повёрнутый элемент (45°) - может показаться неинтерактивным из-за трансформации
+            </div>
+        </section>
+
+        <section>
+            <h2>SVG элементы</h2>
+            <div class="svg-container">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="#007bff" stroke="#0056b3" stroke-width="2"/>
+                    <path d="M20,50 Q50,20 80,50 T80,80 Q50,110 20,80 Z" fill="#28a745"/>
+                </svg>
+            </div>
+            <p>SVG элементы обычно не должны анализироваться индивидуально</p>
+        </section>
+
+        <section>
+            <h2>Элементы с pointer-events</h2>
+            <div style="position: relative; margin-bottom: 20px;">
+                <div class="pointer-events-none"></div>
+                <p>Элемент с pointer-events: none - не кликабельный</p>
+            </div>
+        </section>
+
+        <section>
+            <h2>Очень маленькие интерактивные элементы</h2>
+            <div style="margin-bottom: 20px;">
+                <p>Микро-кнопка (20x20px):</p>
+                <button class="micro-button" title="Микро-кнопка">×</button>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p>Встроенное действие:
+                    <span class="inline-action" title="Встроенное действие">✓</span>
+                </p>
+            </div>
+        </section>
+
+        <section>
+            <h2>Элементы с ARIA roles</h2>
+            <div style="margin-bottom: 20px;">
+                <span class="role-button" role="button" tabindex="0">ARIA button (без cursor:pointer)</span>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <span class="role-link" role="link" tabindex="0">ARIA link (без cursor:pointer)</span>
+            </div>
+        </section>
+
+        <section>
+            <h2>Абсолютно позиционированные элементы</h2>
+            <div style="position: relative; height: 100px; border: 1px solid #ccc; margin-bottom: 20px;">
+                <div class="absolute-small"></div>
+                <p>Маленький абсолютно позиционированный элемент в правом верхнем углу</p>
+            </div>
+        </section>
+
+        <section>
+            <h2>Элементы с низкой opacity</h2>
+            <div class="semi-transparent">
+                Полупрозрачный элемент (opacity: 0.3) - может показаться неинтерактивным
+            </div>
+        </section>
+
+        <section>
+            <h2>Элементы без визуального оформления</h2>
+            <div style="margin-bottom: 20px;">
+                <span class="text-only-interactive">Текстовый интерактивный элемент</span>
+                <span> (без фона и границ)</span>
+            </div>
+        </section>
+
+        <section>
+            <h2>Элементы с нестандартными курсорами</h2>
+            <div class="help-cursor" style="margin-bottom: 10px;">
+                Элемент с курсором help - информационный, не обязательно кликабельный
+            </div>
+            <div class="wait-cursor">
+                Элемент с курсором wait - показывает загрузку, может быть не кликабельным
+            </div>
+        </section>
+
     </div>
 
     <script>
@@ -385,6 +820,95 @@
 
         // Автоматический вызов через 3 секунды
         setTimeout(badFunction, 3000);
+
+        // === JAVASCRIPT ДЛЯ FALSE POSITIVE ТЕСТОВ ===
+
+        // Делаем некоторые элементы интерактивными для тестирования
+        document.addEventListener('DOMContentLoaded', function() {
+            // Декоративные элементы - НЕ кликабельные
+            var decorativeElements = document.querySelectorAll('.decorative-icon, .bullet-point');
+            decorativeElements.forEach(function(el) {
+                // Намеренно НЕ добавляем обработчики кликов
+            });
+
+            // Элементы с кастомными курсорами - могут быть кликабельными в некоторых контекстах
+            document.querySelectorAll('.custom-cursor, .zoom-cursor').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    alert('Это элемент с кастомным курсором - может быть или не быть интерактивным в зависимости от контекста');
+                });
+            });
+
+            // Отключенные элементы - НЕ кликабельные
+            // (disabled inputs уже не кликабельны по умолчанию)
+
+            // Скрытые элементы - НЕ кликабельные визуально
+            // (aria-hidden и visually-hidden элементы не должны быть кликабельными)
+
+            // Элементы с tabindex
+            document.querySelectorAll('.focusable-span, .tabindex-negative').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    alert('Фокусируемый элемент: ' + el.textContent);
+                });
+            });
+
+            // Маленькие интерактивные элементы
+            document.querySelectorAll('.micro-button, .inline-action').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    alert('Маленький интерактивный элемент кликнут!');
+                });
+            });
+
+            // Элементы с ARIA roles
+            document.querySelectorAll('.role-button, .role-link').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    alert('ARIA элемент: ' + el.getAttribute('role'));
+                });
+            });
+
+            // Элементы с transform
+            document.querySelector('.transformed-element').addEventListener('click', function() {
+                alert('Повёрнутый элемент кликнут!');
+            });
+
+            // Полупрозрачный элемент
+            document.querySelector('.semi-transparent').addEventListener('click', function() {
+                alert('Полупрозрачный элемент кликнут!');
+            });
+
+            // Текстовый элемент без визуального оформления
+            document.querySelector('.text-only-interactive').addEventListener('click', function() {
+                alert('Текстовый интерактивный элемент кликнут!');
+            });
+
+            // Элементы с нестандартными курсорами
+            document.querySelectorAll('.help-cursor, .wait-cursor').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    alert('Элемент с нестандартным курсором: ' + window.getComputedStyle(el).cursor);
+                });
+            });
+
+            // Фиксированный оверлей
+            document.querySelector('.fixed-overlay').addEventListener('click', function() {
+                alert('Фиксированный оверлей кликнут!');
+            });
+
+            // Sticky элемент
+            document.querySelector('.sticky-element').addEventListener('click', function() {
+                alert('Sticky элемент кликнут!');
+            });
+        });
+
+        // Добавляем обработчики для демонстрации различных состояний
+        window.addEventListener('load', function() {
+            // Имитируем изменение курсора для wait-cursor элемента
+            setTimeout(function() {
+                var waitElement = document.querySelector('.wait-cursor');
+                if (waitElement) {
+                    waitElement.style.cursor = 'pointer';
+                    waitElement.textContent = 'Теперь курсор pointer - кликабельно!';
+                }
+            }, 2000);
+        });
     </script>
 </body>
 </html>
