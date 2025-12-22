@@ -80,6 +80,7 @@ export interface ComputedStyles {
   pointerEvents?: string;
   visibility: string;
   opacity: string;
+  boxShadow?: string;
 }
 
 /**

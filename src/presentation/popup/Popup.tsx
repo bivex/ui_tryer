@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:31:13
- * Last Updated: 2025-12-22T09:07:19
+ * Last Updated: 2025-12-22T09:31:32
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -236,7 +236,7 @@ const Popup: React.FC = () => {
   const [buttonHover, setButtonHover] = useState<string | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isCopyingReport, setIsCopyingReport] = useState(false);
-  const [checkColorPalette, setCheckColorPalette] = useState(true);
+  const [checkColorPalette, setCheckColorPalette] = useState(false);
 
   useEffect(() => {
     // Initialize popup

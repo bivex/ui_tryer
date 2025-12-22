@@ -368,7 +368,7 @@ class ContentScript {
         minContrastRatio: 4.5,
       },
       featureToggles: {
-        checkColorPalette: settings?.checkColorPalette ?? true,
+        checkColorPalette: settings?.checkColorPalette ?? false,
         checkSpacingGrid: true,
         checkTypographySizes: true,
         checkAccessibility: true,

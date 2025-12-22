@@ -616,7 +616,7 @@ export class DesignRulesFactory {
         }
     },
     featureToggles: {
-      checkColorPalette: true,
+      checkColorPalette: false,
       checkSpacingGrid: true,
       checkTypographySizes: true,
       checkAccessibility: true,

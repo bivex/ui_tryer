@@ -139,17 +139,30 @@ export class ElementAnalyzer {
   ): Issue[] {
     const issues: Issue[] = [];
 
-    // Check minimum clickable size
-    const isClickable = this.isClickableElement(computedStyles);
+    // Skip validation for elements that should be excluded
+    if (this.shouldExcludeFromClickableCheck(computedStyles, boxModel, elementId)) {
+      return issues;
+    }
+
+    // Check minimum clickable size - be more selective
+    const isClickable = this.isClickableElement(computedStyles, elementId);
     if (isClickable) {
       const minSize = rules.minClickableSize;
       const actualWidth = boxModel.totalWidth;
       const actualHeight = boxModel.totalHeight;
 
+      // Skip clickable area check for elements that are likely decorative or part of larger components
+      if (this.shouldSkipClickableAreaCheck(computedStyles, boxModel, elementId, selector)) {
+        return issues;
+      }
+
       if (actualWidth < minSize || actualHeight < minSize) {
+        // Flag as error if element is significantly below minimum size
+        const severity = (actualWidth < minSize - 10 || actualHeight < minSize - 10) ? 'error' : 'warning';
+
         issues.push(ElementInspectionFactory.createIssue(
           'too_small_clickable_area',
-          'error',
+          severity,
           `Кликабельная область слишком маленькая: ${actualWidth}×${actualHeight}px (минимум ${minSize}×${minSize}px)`,
           elementId,
           selector,
@@ -162,18 +175,55 @@ export class ElementAnalyzer {
       }
     }
 
-    // Check if element is too small in general
-    if (boxModel.content.width < 16 || boxModel.content.height < 16) {
-      issues.push(ElementInspectionFactory.createIssue(
-        'inconsistent_sizing',
-        'warning',
-        `Элемент слишком маленький: ${boxModel.content.width}×${boxModel.content.height}px`,
-        elementId,
-        selector,
-        {
-          actualValue: { width: boxModel.content.width, height: boxModel.content.height },
-        }
-      ));
+    // Check if element is suspiciously small (but not microscopic)
+    const contentWidth = boxModel.content.width;
+    const contentHeight = boxModel.content.height;
+
+    // Only warn about elements that are likely interactive but small
+    // Skip elements that are clearly decorative or text-only
+    const isPotentiallyInteractive = this.isClickableElement(computedStyles, elementId) ||
+                                    (computedStyles.cursor && computedStyles.cursor !== 'default' && computedStyles.cursor !== 'auto');
+
+    if (isPotentiallyInteractive &&
+        contentWidth >= 20 && contentHeight >= 20 && // Not too small to be concerning
+        (contentWidth < 36 || contentHeight < 36) && // But still smaller than ideal
+        !this.shouldExcludeFromClickableCheck(computedStyles, boxModel, elementId)) {
+
+      // Don't warn about elements that are clearly just text content without interactive purpose
+      const hasTextStyling = computedStyles.fontSize && parseFloat(computedStyles.fontSize) >= 12;
+      const isLikelyText = (!computedStyles.backgroundColor ||
+                           computedStyles.backgroundColor === 'transparent' ||
+                           computedStyles.backgroundColor === 'rgba(0, 0, 0, 0)') &&
+                          (!computedStyles.border || computedStyles.border === 'none' || computedStyles.border === '0px');
+
+      if (hasTextStyling && isLikelyText) {
+        // This might be a small text element that doesn't need to be large
+        return issues;
+      }
+
+      // Only warn if the element has some visual prominence (background, border, etc.)
+      const hasVisualProminence = (computedStyles.backgroundColor &&
+                                  computedStyles.backgroundColor !== 'transparent' &&
+                                  computedStyles.backgroundColor !== 'rgba(0, 0, 0, 0)') ||
+                                 (computedStyles.border &&
+                                  computedStyles.border !== 'none' &&
+                                  computedStyles.border !== '0px') ||
+                                 (computedStyles.boxShadow &&
+                                  computedStyles.boxShadow !== 'none');
+
+      if (hasVisualProminence) {
+        issues.push(ElementInspectionFactory.createIssue(
+          'inconsistent_sizing',
+          'warning',
+          `Элемент довольно маленький: ${contentWidth}×${contentHeight}px - проверьте, что он достаточно заметен для взаимодействия`,
+          elementId,
+          selector,
+          {
+            actualValue: { width: contentWidth, height: contentHeight },
+            suggestedFix: 'Рассмотрите увеличение размеров для лучшей доступности',
+          }
+        ));
+      }
     }
 
     return issues;
@@ -308,8 +358,180 @@ export class ElementAnalyzer {
     return !(top === bottom && left === right);
   }
 
-  private static isClickableElement(styles: ComputedStyles): boolean {
-    return styles.cursor === 'pointer';
+  private static isClickableElement(styles: ComputedStyles, elementId?: string): boolean {
+    // Check explicit cursor pointer - this is the most reliable indicator
+    if (styles.cursor === 'pointer') {
+      return true;
+    }
+
+    // Elements with pointer-events: none are not clickable
+    if (styles.pointerEvents === 'none') {
+      return false;
+    }
+
+    // Check other cursor types that strongly indicate interactivity
+    // Be more restrictive - only allow cursors that clearly suggest clicking
+    const definitelyInteractiveCursors = ['pointer', 'grab', 'grabbing'];
+    if (definitelyInteractiveCursors.includes(styles.cursor || '')) {
+      return true;
+    }
+
+    // For other cursor types (text, crosshair, move, etc.), be very conservative
+    // These might indicate interactivity but are often just visual feedback
+    // Only consider them interactive if they have additional visual styling
+    const otherInteractiveCursors = ['text', 'crosshair', 'move', 'copy', 'alias'];
+    if (otherInteractiveCursors.includes(styles.cursor || '')) {
+      // Only consider these interactive if they have visual prominence
+      const hasVisualStyling = (styles.backgroundColor &&
+                               styles.backgroundColor !== 'transparent' &&
+                               styles.backgroundColor !== 'rgba(0, 0, 0, 0)') ||
+                              (styles.border &&
+                               styles.border !== 'none' &&
+                               styles.border !== '0px') ||
+                              (styles.boxShadow &&
+                               styles.boxShadow !== 'none');
+
+      return hasVisualStyling;
+    }
+
+    // Default to false for elements without clear interactive indicators
+    return false;
+  }
+
+  /**
+   * Determines if an element should skip the clickable area size check
+   */
+  private static shouldSkipClickableAreaCheck(
+    styles: ComputedStyles,
+    boxModel: BoxModel,
+    elementId?: string,
+    selector?: string
+  ): boolean {
+    const width = boxModel.totalWidth;
+    const height = boxModel.totalHeight;
+
+    // Skip check for elements that are clearly decorative or system elements
+    if (width < 12 || height < 12) {
+      return true;
+    }
+
+    // Skip check for elements that are likely just text or labels
+    // Elements with small dimensions that don't have strong visual prominence
+    const hasVisualProminence = (styles.backgroundColor &&
+                                styles.backgroundColor !== 'transparent' &&
+                                styles.backgroundColor !== 'rgba(0, 0, 0, 0)') ||
+                               (styles.border &&
+                                styles.border !== 'none' &&
+                                styles.border !== '0px') ||
+                               (styles.boxShadow &&
+                                styles.boxShadow !== 'none');
+
+    if (!hasVisualProminence && (width < 32 || height < 32)) {
+      // Small elements without visual styling are likely just text or decorative
+      return true;
+    }
+
+    // Skip check for elements that are part of larger interactive components
+    // (identified by being very thin or having specific styling patterns)
+    if (selector) {
+      // Skip navigation items, breadcrumbs, etc. that are often small but part of larger clickable areas
+      if (selector.includes('.px-2.py-1') ||
+          selector.includes('.px-1.py-0.5') ||
+          selector.includes('span.') && (width < 100 || height < 24)) {
+        return true;
+      }
+
+      // Skip small elements in flex containers that are likely part of larger buttons/links
+      if (selector.includes('div.flex') && (width < 50 || height < 30)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Determines if an element should be excluded from clickable area checks
+   */
+  private static shouldExcludeFromClickableCheck(
+    styles: ComputedStyles,
+    boxModel: BoxModel,
+    elementId?: string
+  ): boolean {
+    const width = boxModel.totalWidth;
+    const height = boxModel.totalHeight;
+
+    // Exclude microscopic elements (smaller than 8x8px)
+    if (width < 8 || height < 8) {
+      return true;
+    }
+
+    // Exclude elements that are clearly decorative or part of larger components
+    if (styles.pointerEvents === 'none') {
+      return true;
+    }
+
+    // Exclude elements with very small dimensions that are likely decorative
+    // Elements smaller than 16x16px are often icons, bullets, or decorative elements
+    if (width < 16 || height < 16) {
+      // Only include if they have clear interactive styling
+      const hasInteractiveStyling = styles.cursor === 'pointer' ||
+                                   styles.cursor === 'grab' ||
+                                   styles.cursor === 'grabbing';
+
+      if (!hasInteractiveStyling) {
+        return true;
+      }
+    }
+
+    // Exclude elements with no visual styling that suggests interactivity
+    const hasBackground = styles.backgroundColor &&
+                         styles.backgroundColor !== 'transparent' &&
+                         styles.backgroundColor !== 'rgba(0, 0, 0, 0)' &&
+                         styles.backgroundColor !== '';
+    const hasBorder = styles.border &&
+                     styles.border !== '0px' &&
+                     styles.border !== 'none' &&
+                     styles.border !== '';
+    const hasBoxShadow = styles.boxShadow &&
+                        styles.boxShadow !== 'none' &&
+                        styles.boxShadow !== '';
+
+    // If element has no background, border, or box shadow, it's likely just text
+    // Only include it if it has clear interactive indicators
+    if (!hasBackground && !hasBorder && !hasBoxShadow) {
+      const isClearlyInteractive = styles.cursor === 'pointer' ||
+                                  styles.cursor === 'grab' ||
+                                  styles.cursor === 'grabbing' ||
+                                  styles.cursor === 'text';
+
+      if (!isClearlyInteractive) {
+        return true;
+      }
+    }
+
+    // Exclude elements that are too thin to be meaningful clickable areas
+    // (like horizontal lines, vertical separators, etc.)
+    if ((width < 24 && height >= 100) || (height < 24 && width >= 100)) {
+      return true;
+    }
+
+    // Exclude elements that are extremely thin in one dimension
+    // (like borders, underlines, etc.)
+    if (width < 6 || height < 6) {
+      return true;
+    }
+
+    // Exclude elements with no meaningful content and no interactive styling
+    // Elements that are just whitespace or have minimal visual presence
+    if (!hasBackground && !hasBorder && !hasBoxShadow) {
+      const hasTextContent = styles.fontSize && parseFloat(styles.fontSize) > 0;
+      if (!hasTextContent) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private static normalizeColor(color: string): string | null {

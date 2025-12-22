@@ -445,7 +445,7 @@ export class ElementInspector {
     const relevantProperties = [
       'display', 'position', 'width', 'height', 'minWidth', 'minHeight', 'maxWidth', 'maxHeight',
       'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'color', 'backgroundColor',
-      'margin', 'padding', 'border', 'cursor', 'pointerEvents', 'visibility', 'opacity'
+      'margin', 'padding', 'border', 'cursor', 'pointerEvents', 'visibility', 'opacity', 'boxShadow'
     ];
 
     const styles: Record<string, string> = {};
@@ -454,6 +454,45 @@ export class ElementInspector {
     });
 
     return styles;
+  }
+
+  /**
+   * Simple web scraping utility for extracting text content from elements
+   */
+  scrapeTextContent(selector: string): string {
+    try {
+      const element = document.querySelector(selector);
+      return element ? element.textContent?.trim() || '' : '';
+    } catch (error) {
+      console.error('Scraping error:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Scrape multiple elements by selector
+   */
+  scrapeMultipleElements(selector: string): string[] {
+    try {
+      const elements = document.querySelectorAll(selector);
+      return Array.from(elements).map(el => el.textContent?.trim() || '');
+    } catch (error) {
+      console.error('Scraping error:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Scrape element attributes
+   */
+  scrapeAttributes(selector: string, attribute: string): string[] {
+    try {
+      const elements = document.querySelectorAll(selector);
+      return Array.from(elements).map(el => el.getAttribute(attribute) || '');
+    } catch (error) {
+      console.error('Scraping error:', error);
+      return [];
+    }
   }
 
   /**
@@ -483,12 +522,143 @@ export class ElementInspector {
     const htmlElement = element as HTMLElement;
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(htmlElement);
+    const tagName = element.tagName.toLowerCase();
 
-    return style.display !== 'none' &&
-           style.visibility !== 'hidden' &&
-           rect.width > 0 &&
-           rect.height > 0 &&
-           !['script', 'style', 'link', 'meta', 'title'].includes(element.tagName.toLowerCase());
+    // Basic visibility checks
+    if (style.display === 'none' ||
+        style.visibility === 'hidden' ||
+        style.opacity === '0' ||
+        rect.width <= 0 ||
+        rect.height <= 0) {
+      return false;
+    }
+
+    // Exclude system/technical elements
+    const technicalElements = ['script', 'style', 'link', 'meta', 'title', 'noscript', 'iframe',
+                              'head', 'html', 'body'];
+    if (technicalElements.includes(tagName)) {
+      return false;
+    }
+
+    // Exclude elements that are too small to be meaningful UI components
+    // Elements smaller than 4x4px are likely decorative or system elements
+    if (rect.width < 4 || rect.height < 4) {
+      return false;
+    }
+
+    // Exclude elements that are positioned off-screen
+    if (rect.left + rect.width < 0 ||
+        rect.top + rect.height < 0 ||
+        rect.left > window.innerWidth ||
+        rect.top > window.innerHeight) {
+      return false;
+    }
+
+    // For SVG elements, be much more selective
+    if (tagName === 'svg') {
+      // Only include SVG elements that are reasonably sized and likely to be interactive
+      // Small SVGs are often icons or decorative elements
+      // Require at least 20x20px to be considered for inspection
+      return rect.width >= 20 && rect.height >= 20;
+    }
+
+    // For SVG sub-elements, be extremely restrictive - almost never inspect them individually
+    if (['path', 'circle', 'rect', 'ellipse', 'line', 'polyline', 'polygon', 'g', 'defs', 'symbol', 'use', 'clipPath'].includes(tagName)) {
+      // These are almost always part of larger SVG graphics and should never be inspected individually
+      // unless they have explicit interactive styling AND are reasonably sized
+      const isReasonableSize = rect.width >= 24 && rect.height >= 24;
+      const hasExplicitInteractiveCursor = style.cursor === 'pointer';
+      const hasClickHandler = element.getAttribute('onclick') !== null ||
+                             element.getAttribute('onmousedown') !== null ||
+                             element.getAttribute('onmouseup') !== null;
+
+      // Only allow if explicitly interactive AND reasonably sized
+      return isReasonableSize && (hasExplicitInteractiveCursor || hasClickHandler);
+    }
+
+    // Exclude elements with pointer-events: none
+    if (style.pointerEvents === 'none') {
+      return false;
+    }
+
+    // Exclude very small text elements that are unlikely to be interactive
+    if ((tagName === 'span' || tagName === 'p' || tagName === 'div') && rect.width < 24 && rect.height < 20) {
+      const hasInteractiveStyling = style.cursor === 'pointer' ||
+                                   element.getAttribute('role') === 'button' ||
+                                   element.getAttribute('role') === 'link' ||
+                                   element.getAttribute('onclick') !== null ||
+                                   element.getAttribute('onmousedown') !== null;
+      const hasTabIndex = element.getAttribute('tabindex') !== null;
+
+      // Only allow if it has clear interactive indicators
+      if (!hasInteractiveStyling && !hasTabIndex) {
+        return false;
+      }
+    }
+
+    // Exclude elements that are clearly just text content without interactive purpose
+    if ((tagName === 'span' || tagName === 'p' || tagName === 'div') &&
+        !element.getAttribute('onclick') &&
+        !element.getAttribute('onmousedown') &&
+        !element.getAttribute('onmouseup') &&
+        style.cursor !== 'pointer' &&
+        element.getAttribute('role') !== 'button' &&
+        element.getAttribute('role') !== 'link' &&
+        element.getAttribute('tabindex') === null) {
+
+      // If it's just text without any interactive styling, don't inspect it
+      const hasVisualStyling = style.backgroundColor !== 'transparent' &&
+                              style.backgroundColor !== 'rgba(0, 0, 0, 0)' &&
+                              style.backgroundColor !== '' &&
+                              style.backgroundColor !== 'inherit';
+      const hasBorder = style.border !== 'none' && style.border !== '0px';
+      const hasBoxShadow = style.boxShadow && style.boxShadow !== 'none';
+
+      if (!hasVisualStyling && !hasBorder && !hasBoxShadow) {
+        return false;
+      }
+    }
+
+    // Exclude decorative elements (hr, br, etc.)
+    if (['hr', 'br', 'wbr'].includes(tagName)) {
+      return false;
+    }
+
+    // Include elements that are likely to be interactive or visually important
+    const isInteractive = this.hasClickHandler(element) ||
+                         ['button', 'input', 'select', 'textarea', 'a'].includes(tagName) ||
+                         element.getAttribute('role') === 'button' ||
+                         element.getAttribute('role') === 'link' ||
+                         element.getAttribute('role') === 'checkbox' ||
+                         element.getAttribute('role') === 'radio' ||
+                         element.getAttribute('role') === 'tab' ||
+                         element.getAttribute('role') === 'menuitem' ||
+                         element.getAttribute('tabindex') !== null ||
+                         element.getAttribute('onclick') !== null ||
+                         element.getAttribute('onmousedown') !== null ||
+                         element.getAttribute('onmouseup') !== null;
+
+    const hasVisualStyling = (style.backgroundColor && style.backgroundColor !== 'transparent' &&
+                             style.backgroundColor !== 'rgba(0, 0, 0, 0)' &&
+                             style.backgroundColor !== '') ||
+                            (style.border && style.border !== 'none' && style.border !== '0px') ||
+                            (style.boxShadow && style.boxShadow !== 'none') ||
+                            (style.backgroundImage && style.backgroundImage !== 'none') ||
+                            parseFloat(style.fontSize || '0') > 12;
+
+    // Be much more restrictive about what gets inspected
+    // Only inspect elements that are clearly interactive OR have significant visual presence
+    if (isInteractive) {
+      return true;
+    }
+
+    // For non-interactive elements, require substantial visual presence or size
+    if (hasVisualStyling && (rect.width >= 24 && rect.height >= 24)) {
+      return true;
+    }
+
+    // Only inspect very large non-interactive elements that might be important layout components
+    return rect.width >= 48 && rect.height >= 48;
   }
 
   /**

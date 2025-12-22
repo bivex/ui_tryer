@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:27:15
- * Last Updated: 2025-12-22T07:41:13
+ * Last Updated: 2025-12-22T10:09:42
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -155,8 +155,20 @@ export interface ComputedStyles {
   maxHeight?: string;
   fontSize: string;
   lineHeight: string;
+  fontFamily?: string;
+  fontWeight?: string;
   color: string;
   backgroundColor: string;
+  backgroundImage?: string;
+  border?: string;
+  borderColor?: string;
+  margin?: string;
+  padding?: string;
+  cursor?: string;
+  pointerEvents?: string;
+  visibility?: string;
+  opacity?: string;
+  boxShadow?: string;
 }
 
 export interface DesignRules {

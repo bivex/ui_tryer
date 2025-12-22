@@ -222,6 +222,15 @@ describe('ElementAnalyzer', () => {
 
   describe('Color Analysis', () => {
     it('should detect colors not in palette', () => {
+      // Enable color palette checking for this test
+      const rulesWithColorCheck = {
+        ...rules,
+        featureToggles: {
+          ...rules.featureToggles,
+          checkColorPalette: true,
+        }
+      };
+
       const boxModel = {
         content: { width: 100, height: 50, x: 0, y: 0 },
         padding: { top: 8, right: 8, bottom: 8, left: 8 },
@@ -250,7 +259,7 @@ describe('ElementAnalyzer', () => {
         opacity: '1',
       };
 
-      const result = ElementAnalyzer.analyzeElement('test-element', '.test', boxModel, computedStyles, rules);
+      const result = ElementAnalyzer.analyzeElement('test-element', '.test', boxModel, computedStyles, rulesWithColorCheck);
 
       expect(result.issues).toContainEqual(
         expect.objectContaining({
