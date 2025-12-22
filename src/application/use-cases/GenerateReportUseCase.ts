@@ -7,7 +7,7 @@
  * https://github.com/bivex
  *
  * Created: 2025-12-22T07:29:22
- * Last Updated: 2025-12-22T07:41:13
+ * Last Updated: 2025-12-22T09:01:12
  *
  * Licensed under the MIT License.
  * Commercial licensing available upon request.
@@ -450,6 +450,34 @@ export class GenerateReportUseCase {
   private generateMarkdownReport(report: UIReport): string {
     const todoList = this.generateTodoList(report.issues);
 
+    // Group issues by element for better organization
+    const issuesByElement = report.issues.reduce((acc, issue) => {
+      if (!acc[issue.elementId]) {
+        acc[issue.elementId] = [];
+      }
+      acc[issue.elementId].push(issue);
+      return acc;
+    }, {} as Record<string, typeof report.issues>);
+
+    let issuesSection = '';
+
+    for (const [elementId, elementIssues] of Object.entries(issuesByElement)) {
+      const firstIssue = elementIssues[0];
+      const positionInfo = this.generateMarkdownPositionInfo(firstIssue, report);
+
+      issuesSection += `### 📍 Элемент: \`${firstIssue.selector}\`
+
+${positionInfo}`;
+
+      for (const issue of elementIssues) {
+        issuesSection += `#### ${this.getSeverityEmoji(issue.severity)} ${issue.severity.toUpperCase()}: ${issue.message}
+
+- **Тип проблемы:** ${this.getIssueTypeLabel(issue.type)}
+- **Важность:** ${this.getSeverityLabel(issue.severity)}
+${issue.actualValue ? `- **Текущее значение:** ${issue.actualValue}\n` : ''}${issue.expectedValue ? `- **Ожидаемое значение:** ${issue.expectedValue}\n` : ''}${issue.position ? `- **📍 Позиция проблемы:** x=${issue.position.x}, y=${issue.position.y} (размер: ${issue.position.width}×${issue.position.height})\n` : ''}${issue.suggestedFix ? `- **💡 Рекомендация:** ${issue.suggestedFix}\n` : ''}\n`;
+      }
+    }
+
     return `# ${report.title}
 
 **URL:** ${report.url}
@@ -474,14 +502,7 @@ export class GenerateReportUseCase {
 
 ## Найденные проблемы
 
-${report.issues.map(issue => `### ${issue.severity.toUpperCase()}: ${issue.message}
-
-- **Элемент:** \`${issue.selector}\`
-- **Тип:** ${issue.type}
-${issue.suggestedFix ? `- **Рекомендация:** ${issue.suggestedFix}` : ''}
-
-`).join('\n')}
-
+${issuesSection}
 ## 📋 План исправлений
 
 ${todoList}`;
@@ -651,6 +672,37 @@ ${todoList}`;
     };
 
     return labels[severity] || severity;
+  }
+
+  /**
+   * Gets emoji for severity level
+   */
+  private getSeverityEmoji(severity: string): string {
+    const emojis: Record<string, string> = {
+      'error': '🚨',
+      'warning': '⚠️',
+      'info': 'ℹ️'
+    };
+
+    return emojis[severity] || '❓';
+  }
+
+  /**
+   * Generates position information for markdown
+   */
+  private generateMarkdownPositionInfo(issue: ElementInspection['issues'][0], report: UIReport): string {
+    // Find the element in the report to get its inspection data
+    const elementInspection = report.issues.find(i => i.elementId === issue.elementId);
+
+    if (elementInspection && elementInspection.position) {
+      const pos = elementInspection.position;
+      return `**📍 Расположение:** x=${pos.x}, y=${pos.y} | **Размер:** ${pos.width}×${pos.height}px
+
+---
+`;
+    }
+
+    return '**📍 Информация о расположении:** недоступна\n\n---\n';
   }
 
   /**
