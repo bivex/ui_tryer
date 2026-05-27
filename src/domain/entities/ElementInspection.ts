@@ -109,6 +109,9 @@ export interface ElementContext {
 
   /** Element relations for consistency analysis */
   relations?: ElementRelations;
+
+  /** Text content of the element for typography analysis */
+  textContent?: string;
 }
 
 /**

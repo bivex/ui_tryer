@@ -52,20 +52,28 @@ export class AdvancedElementAnalyzer {
     context?: ElementContext
   ): ElementInspection {
     const issues: Issue[] = [];
+    const hasText = !!(context?.textContent && context.textContent.trim().length > 0);
+    const isInteractive = this.isInteractiveElement(selector, context);
 
     // Phase 1: Critical accessibility and contrast
-    issues.push(...this.analyzeAPCAContrast(elementId, selector, computedStyles, rules.apcaContrast));
+    if (hasText) {
+      issues.push(...this.analyzeAPCAContrast(elementId, selector, computedStyles, rules.apcaContrast));
+    }
     issues.push(...this.analyzeAriaCompliance(elementId, selector, computedStyles, rules.accessibility.aria));
-    issues.push(...this.analyzeKeyboardNavigation(elementId, selector, computedStyles, rules.accessibility.keyboard));
+    issues.push(...this.analyzeKeyboardNavigation(elementId, selector, computedStyles, rules.accessibility.keyboard, context));
 
     // Phase 2: Typography and spacing harmony
     // issues.push(...this.analyzeVerticalRhythm(elementId, selector, boxModel, computedStyles, rules.verticalRhythm, context));
-    issues.push(...this.analyzeTypographyAdvanced(elementId, selector, computedStyles, rules.typography, context));
+    if (hasText) {
+      issues.push(...this.analyzeTypographyAdvanced(elementId, selector, computedStyles, rules.typography, context));
+    }
     // issues.push(...this.analyzeColorHarmony(elementId, selector, computedStyles, rules.colorHarmony));
 
     // Phase 3: Layout and interaction
     issues.push(...this.analyzeLayoutAdvanced(elementId, selector, boxModel, computedStyles, context, rules.layout));
-    issues.push(...this.analyzeInteractionAdvanced(elementId, selector, computedStyles, context?.computedStates, rules.interaction));
+    if (isInteractive) {
+      issues.push(...this.analyzeInteractionAdvanced(elementId, selector, computedStyles, context?.computedStates, rules.interaction));
+    }
 
     // Phase 4: Advanced analysis
     issues.push(...this.analyzeResponsiveAdvanced(elementId, selector, computedStyles, boxModel, context?.viewport, rules.responsive));
@@ -246,13 +254,14 @@ export class AdvancedElementAnalyzer {
     elementId: string,
     selector: string,
     styles: any,
-    rules: AdvancedDesignRules['accessibility']['keyboard']
+    rules: AdvancedDesignRules['accessibility']['keyboard'],
+    context?: ElementContext
   ): Issue[] {
     const issues: Issue[] = [];
 
     if (!styles) return issues;
 
-    if (this.isInteractiveElement(selector)) {
+    if (this.isInteractiveElement(selector, context)) {
       // Check for focus indicator
       const hasFocusIndicator = styles.outline || styles.boxShadow ||
                                (styles.border && styles.border !== 'none');
@@ -416,7 +425,19 @@ export class AdvancedElementAnalyzer {
     if (!styles) return issues;
 
     const fontSize = parseFloat(styles.fontSize || '16');
-    const lineHeight = parseFloat(styles.lineHeight || '1.5');
+    let lineHeightValue = styles.lineHeight;
+    let lineHeight: number;
+
+    if (lineHeightValue === 'normal' || !lineHeightValue) {
+      lineHeight = fontSize * 1.5;
+    } else {
+      lineHeight = parseFloat(lineHeightValue);
+      // If lineHeight is a small ratio (like 1.5), convert it to pixels
+      if (lineHeight < 5) {
+        lineHeight = fontSize * lineHeight;
+      }
+    }
+
     const containerWidth = parseFloat(styles.width) || 800;
 
     // Perform comprehensive typography analysis
@@ -424,7 +445,7 @@ export class AdvancedElementAnalyzer {
       fontSize,
       lineHeight,
       containerWidth,
-      undefined, // content not available at this level
+      context?.textContent,
       rules
     );
 
@@ -801,11 +822,18 @@ export class AdvancedElementAnalyzer {
   }
 
   private static isHeading(selector: string): boolean {
-    return /h[1-6]/i.test(selector);
+    return /^(h[1-6])(\\.|#|$)/i.test(selector);
   }
 
-  private static isInteractiveElement(selector: string): boolean {
-    return /button|a|input|select|textarea|\[role=button\]|\[role=link\]|\[role=tab\]|\[tabindex\]/i.test(selector);
+  private static isInteractiveElement(selector: string, context?: ElementContext): boolean {
+    const tagName = selector.split(/[.#\\[]/)[0].toLowerCase();
+    const interactiveTags = ['button', 'a', 'input', 'select', 'textarea', 'details', 'summary'];
+    if (interactiveTags.includes(tagName)) return true;
+    
+    if (selector.includes('[role=button]') || selector.includes('[role=link]') || selector.includes('[role=tab]')) return true;
+    if (selector.includes('[tabindex]')) return true;
+
+    return false;
   }
 
   private static isUIElement(selector: string): boolean {

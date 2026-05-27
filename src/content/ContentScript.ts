@@ -284,7 +284,8 @@ class ContentScript {
     return {
       viewport: { width: window.innerWidth, height: window.innerHeight },
       page: { primaryColor: this.extractPrimaryColor(), fontFamily: this.extractPrimaryFontFamily() },
-      interaction: { isHoverable: htmlElement.matches(':hover'), isFocusable: htmlElement.matches(':focus') }
+      interaction: { isHoverable: htmlElement.matches(':hover'), isFocusable: htmlElement.matches(':focus') },
+      textContent: htmlElement.innerText || htmlElement.textContent || ''
     };
   }
 
