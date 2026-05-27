@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bootstrap Demo - Pixel Police Test</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .custom-bad-text {
+            font-size: 10px; /* Too small */
+            color: #777;    /* Low contrast on white maybe? */
+            line-height: 1; /* Too tight */
+        }
+        .bad-spacing {
+            margin-top: 13px; /* Non-standard grid spacing (usually 4, 8, 16) */
+            padding: 2px;     /* Very small click area */
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h1 class="card-title mb-4">🚔 Pixel Police Test Drive</h1>
+                        <p class="lead">This is a standard Bootstrap 5 container. Let's see how the analyzer handles it.</p>
+                        
+                        <div class="alert alert-info">
+                            Standard Bootstrap Alert.
+                        </div>
+
+                        <div class="mt-4">
+                            <h3>Section with Issues</h3>
+                            <p class="custom-bad-text">
+                                This text is intentionally designed to trigger violations: 
+                                small font size, tight line height, and potentially low contrast.
+                            </p>
+                            <button class="btn btn-primary bad-spacing">
+                                Small Padding Button
+                            </button>
+                        </div>
+
+                        <div class="mt-5">
+                            <h3>Grid Test</h3>
+                            <div class="row">
+                                <div class="col-6 bg-primary text-white p-3">Column 1</div>
+                                <div class="col-6 bg-secondary text-white p-3">Column 2</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
