@@ -146,19 +146,21 @@ export class TypographyAnalyzer {
 
     // Line length issues
     const lengthRules = rules?.lineLength || { comfortable: { min: 55, max: 75 } };
-    if (lineLength < lengthRules.comfortable.min) {
+    const roundedLength = Math.round(lineLength);
+
+    if (roundedLength < lengthRules.comfortable.min) {
       issues.push({
         type: 'line_length',
         severity: 'warning',
-        message: `Line too short: ${lineLength.toFixed(0)} characters (min: ${lengthRules.comfortable.min})`,
+        message: `Line too short: ${roundedLength} characters (min: ${lengthRules.comfortable.min})`,
         value: lineLength,
         optimal: lengthRules.comfortable.min
       });
-    } else if (lineLength > lengthRules.comfortable.max) {
+    } else if (roundedLength > lengthRules.comfortable.max) {
       issues.push({
         type: 'line_length',
         severity: 'warning',
-        message: `Line too long: ${lineLength.toFixed(0)} characters (max: ${lengthRules.comfortable.max})`,
+        message: `Line too long: ${roundedLength} characters (max: ${lengthRules.comfortable.max})`,
         value: lineLength,
         optimal: lengthRules.comfortable.max
       });
