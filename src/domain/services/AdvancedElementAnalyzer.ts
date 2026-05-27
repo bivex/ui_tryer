@@ -424,6 +424,11 @@ export class AdvancedElementAnalyzer {
 
     if (!styles) return issues;
 
+    // Only analyze typography for meaningful text blocks
+    const isBlock = this.isTextBlockElement(selector);
+    const isHeading = this.isHeading(selector);
+    const isLeafText = !isBlock && !isHeading && context?.textContent && context.textContent.length < 50;
+
     const fontSize = parseFloat(styles.fontSize || '16');
     let lineHeightValue = styles.lineHeight;
     let lineHeight: number;
@@ -451,6 +456,19 @@ export class AdvancedElementAnalyzer {
 
     // Convert analysis results to issues
     for (const issue of analysis.issues) {
+      // Filter out false positives for small/UI elements
+      if (issue.type === 'line_length') {
+        // Skip "Line too short" for headings, buttons, and short text
+        if (issue.message.includes('too short') && (isHeading || isLeafText || containerWidth < 200)) continue;
+        // Skip "Line too long" for high-level containers that aren't text blocks
+        if (issue.message.includes('too long') && !isBlock && !isHeading) continue;
+      }
+
+      if (issue.type === 'widow' || issue.type === 'orphan') {
+        // Widows/orphans only matter for multi-line paragraphs
+        if (!isBlock || (context?.textContent && context.textContent.length < 100)) continue;
+      }
+
       issues.push({
         id: `${elementId}_typography_${issue.type}_${Date.now()}`,
         type: this.mapTypographyIssueType(issue.type),
@@ -836,8 +854,13 @@ export class AdvancedElementAnalyzer {
     return false;
   }
 
+  private static isTextBlockElement(selector: string): boolean {
+    const tagName = selector.split(/[.#\\[]/)[0].toLowerCase();
+    return ['p', 'article', 'section', 'li', 'blockquote', 'aside'].includes(tagName);
+  }
+
   private static isUIElement(selector: string): boolean {
-    return /button|input|select|textarea|\[role=button\]|\[role=checkbox\]|\[role=radio\]/i.test(selector);
+    return /button|input|select|textarea|\\[role=button\\]|\\[role=checkbox\\]|\\[role=radio\\]/i.test(selector);
   }
 
   private static extractVerticalSpacings(boxModel: BoxModel, styles: any): number[] {

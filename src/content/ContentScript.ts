@@ -302,6 +302,7 @@ class ContentScript {
   private shouldSkipElement(element: Element): boolean {
     const tag = element.tagName.toLowerCase();
     if (['script', 'style', 'link', 'meta'].includes(tag)) return true;
+    if (element.id && element.id.startsWith('pixel-police-')) return true;
     const style = window.getComputedStyle(element);
     return style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0';
   }
