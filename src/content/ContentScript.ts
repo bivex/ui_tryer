@@ -103,9 +103,143 @@ class ContentScript {
           break;
 
         case 'GENERATE_REPORT_REQUEST':
-          const reportResult = await this.handleGenerateReport(message.payload);
-          sendResponse(reportResult);
+          if (message.payload.format === 'ui') {
+            await this.runFullRaid(message.payload.settings);
+            sendResponse({ success: true });
+          } else {
+            const reportResult = await this.handleGenerateReport(message.payload);
+            sendResponse(reportResult);
+          }
           break;
+
+  /**
+   * Run a full page raid - scan all elements and show visual markers
+   */
+  private async runFullRaid(settings?: any): Promise<void> {
+    console.log('🚨 Pixel Police Raid started!');
+    
+    // 1. Show a loading overlay
+    const overlay = this.createRaidOverlay();
+    document.body.appendChild(overlay);
+
+    try {
+      // 2. Analyze all elements
+      const elements = await this.analyzeAllElements(settings);
+      
+      // 3. Filter elements with issues
+      const elementsWithIssues = elements.filter(el => el.issues && el.issues.length > 0);
+      
+      // 4. Show markers
+      this.showRaidMarkers(elementsWithIssues);
+      
+      // 5. Update overlay with summary
+      const totalCrimes = elementsWithIssues.reduce((acc, el) => acc + el.issues.length, 0);
+      this.updateRaidOverlay(overlay, totalCrimes, elementsWithIssues.length);
+      
+      console.log(`🚨 Raid complete! Found ${totalCrimes} UI crimes across ${elementsWithIssues.length} elements.`);
+    } catch (error) {
+      console.error('🚨 Raid failed:', error);
+      overlay.textContent = '❌ Raid Failed';
+      setTimeout(() => overlay.remove(), 3000);
+    }
+  }
+
+  private createRaidOverlay(): HTMLElement {
+    const overlay = document.createElement('div');
+    overlay.id = 'pixel-police-raid-overlay';
+    Object.assign(overlay.style, {
+      position: 'fixed',
+      top: '20px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: '#dc2626',
+      color: 'white',
+      padding: '12px 24px',
+      borderRadius: '30px',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+      zIndex: '2147483647',
+      fontWeight: 'bold',
+      fontSize: '16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      transition: 'all 0.3s ease',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    });
+    overlay.innerHTML = '🚨 <span id=\"raid-status\">Investigating UI Crimes...</span>';
+    return overlay;
+  }
+
+  private updateRaidOverlay(overlay: HTMLElement, crimeCount: number, elementCount: number): void {
+    const status = overlay.querySelector('#raid-status');
+    if (status) {
+      status.textContent = `CRIME WAVE DETECTED: ${crimeCount} violations in ${elementCount} elements!`;
+    }
+    
+    // Add a close button
+    const closeBtn = document.createElement('span');
+    closeBtn.textContent = '✕';
+    closeBtn.style.marginLeft = '12px';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.onclick = () => {
+      overlay.remove();
+      this.clearRaidMarkers();
+    };
+    overlay.appendChild(closeBtn);
+  }
+
+  private showRaidMarkers(elements: ElementInspection[]): void {
+    this.clearRaidMarkers();
+    
+    elements.forEach(element => {
+      if (!element.issues || element.issues.length === 0) return;
+      
+      const marker = document.createElement('div');
+      marker.className = 'pixel-police-crime-marker';
+      const severity = element.issues.some(i => i.severity === 'error') ? 'error' : 'warning';
+      
+      Object.assign(marker.style, {
+        position: 'absolute',
+        top: `${element.boxModel.content.y}px`,
+        left: `${element.boxModel.content.x}px`,
+        width: `${element.boxModel.content.width}px`,
+        height: `${element.boxModel.content.height}px`,
+        border: `2px solid ${severity === 'error' ? '#dc2626' : '#facc15'}`,
+        backgroundColor: `${severity === 'error' ? 'rgba(220, 38, 38, 0.1)' : 'rgba(250, 204, 21, 0.1)'}`,
+        zIndex: '2147483646',
+        pointerEvents: 'none',
+        boxSizing: 'border-box'
+      });
+      
+      // Add a small badge
+      const badge = document.createElement('div');
+      badge.textContent = element.issues.length.toString();
+      Object.assign(badge.style, {
+        position: 'absolute',
+        top: '-10px',
+        right: '-10px',
+        backgroundColor: severity === 'error' ? '#dc2626' : '#facc15',
+        color: severity === 'error' ? 'white' : 'black',
+        borderRadius: '50%',
+        width: '20px',
+        height: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+      });
+      
+      marker.appendChild(badge);
+      document.body.appendChild(marker);
+    });
+  }
+
+  private clearRaidMarkers(): void {
+    const markers = document.querySelectorAll('.pixel-police-crime-marker');
+    markers.forEach(m => m.remove());
+  }
 
         default:
           sendResponse({ success: false, error: `Unknown message type: ${message.type}` });

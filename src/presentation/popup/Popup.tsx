@@ -236,6 +236,7 @@ const Popup: React.FC = () => {
   const [buttonHover, setButtonHover] = useState<string | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isCopyingReport, setIsCopyingReport] = useState(false);
+  const [isRaidInProgress, setIsRaidInProgress] = useState(false);
   const [checkColorPalette, setCheckColorPalette] = useState(false);
 
   useEffect(() => {
@@ -334,9 +335,7 @@ const Popup: React.FC = () => {
 
       if (response.success && response.data?.report) {
         await navigator.clipboard.writeText(response.data.report);
-
-        // Show brief success feedback and log full report to console
-        console.log('Pixel Police Report copied to clipboard:', response.data.report);
+        console.log('Pixel Police Report copied to clipboard');
       } else {
         alert('❌ Не удалось сгенерировать отчет');
       }
@@ -345,6 +344,33 @@ const Popup: React.FC = () => {
       alert('❌ Ошибка при копировании отчета');
     } finally {
       setIsCopyingReport(false);
+    }
+  };
+
+  const runFullRaid = async () => {
+    setIsRaidInProgress(true);
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'GENERATE_REPORT_REQUEST',
+        payload: {
+          scope: 'current_page',
+          format: 'ui', // We'll handle this in content/background to show overlay
+          settings: { checkColorPalette },
+        },
+        source: 'popup',
+        target: 'background',
+        timestamp: Date.now(),
+      });
+
+      if (response.success) {
+        // Success feedback is handled by the content script (showing icons on page)
+      } else {
+        alert('❌ Не удалось запустить облаву');
+      }
+    } catch (error) {
+      console.error('Failed to run raid:', error);
+    } finally {
+      setIsRaidInProgress(false);
     }
   };
 
@@ -465,6 +491,23 @@ const Popup: React.FC = () => {
             <span>📊</span>
             Reports & Analysis
           </h3>
+
+          <button
+            onClick={runFullRaid}
+            disabled={isRaidInProgress}
+            onMouseEnter={() => handleButtonHover('raid')}
+            onMouseLeave={() => handleButtonHover(null)}
+            style={{
+              ...styles.button,
+              ...styles.buttonDestructive,
+              ...(buttonHover === 'raid' ? styles.buttonDestructiveHover : {}),
+              ...(isRaidInProgress ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
+              marginBottom: '16px',
+            }}
+          >
+            <span>{isRaidInProgress ? '⏳' : '🚨'}</span>
+            <span>{isRaidInProgress ? 'Investigating...' : 'Run Full Page Raid'}</span>
+          </button>
 
           <button
             onClick={generateReport}
