@@ -16,8 +16,8 @@ Pixel Police is a Chrome extension that automatically validates your web UI agai
 ```bash
 git clone <repository>
 cd ui-inspector
-npm install
-npm run build
+bun install
+bun run build
 ```
 
 Then load it in Chrome:
@@ -86,12 +86,12 @@ interface Message<T> {
 ## Development
 
 ```bash
-npm run dev          # Build in watch mode
-npm run lint         # Check code style
-npm run lint:fix     # Fix code style
-npm run type-check   # TypeScript validation
-npm run test         # Run tests
-npm run test:watch   # Run tests in watch mode
+bun run dev          # Build in watch mode
+bun run lint         # Check code style
+bun run lint:fix     # Fix code style
+bun run type-check   # TypeScript validation
+bun run test         # Run tests
+bun run test:watch   # Run tests in watch mode
 ```
 
 ## Roadmap
