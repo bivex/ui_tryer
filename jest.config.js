@@ -32,9 +32,13 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(jsdom|parse5|whatwg-.*|w3c-.*)/)',
+  ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  testPathIgnorePatterns: [],
   testTimeout: 10000,
 };
