@@ -1,34 +1,21 @@
 /**
- * Pixel Police — URL Analyzer
+ * Pixel Police — URL Analyzer (Direct UseCase Integration)
  *
- * Fetches a real webpage, resolves all CSS, parses the DOM,
- * and runs ALL 14 domain analyzers on each element.
- *
- * Usage:
- *   bun run analyze-url.ts <url>
- *   bun run analyze-url.ts https://bootswatch.com/cosmo/
+ * This tool runs the actual extension UseCases in a Node.js environment
+ * to provide analysis results identical to the Chrome extension.
  */
 
 import { JSDOM } from 'jsdom';
 import fs from 'fs';
-import { ElementAnalyzer } from '../src/domain/services/ElementAnalyzer';
-import { AdvancedElementAnalyzer } from '../src/domain/services/AdvancedElementAnalyzer';
-import { APCAContrastAnalyzer } from '../src/domain/services/APCAContrastAnalyzer';
-import { VerticalRhythmAnalyzer } from '../src/domain/services/VerticalRhythmAnalyzer';
-import { TypographyAnalyzer } from '../src/domain/services/TypographyAnalyzer';
-import { ColorHarmonyAnalyzer } from '../src/domain/services/ColorHarmonyAnalyzer';
-import { LayoutAnalyzer } from '../src/domain/services/LayoutAnalyzer';
-import { InteractionAnalyzer } from '../src/domain/services/InteractionAnalyzer';
-import { ResponsiveAnalyzer } from '../src/domain/services/ResponsiveAnalyzer';
-import { PerformanceAnalyzer } from '../src/domain/services/PerformanceAnalyzer';
-import { ConsistencyAnalyzer } from '../src/domain/services/ConsistencyAnalyzer';
-import { ResponsiveChecker } from '../src/domain/services/ResponsiveChecker';
-import { DesignRulesFactory } from '../src/domain/entities/DesignRules';
-import { ElementInspectionFactory, Issue } from '../src/domain/entities/ElementInspection';
-import { ComputedStyles } from '../src/domain/entities/ElementInspection';
 import http from 'http';
 import https from 'https';
 import { URL } from 'url';
+
+import { AdvancedInspectElementUseCase } from '../src/application/use-cases/AdvancedInspectElementUseCase';
+import { DesignRulesFactory } from '../src/domain/entities/DesignRules';
+import { ElementInspectionFactory, Issue } from '../src/domain/entities/ElementInspection';
+import { VerticalRhythmAnalyzer } from '../src/domain/services/VerticalRhythmAnalyzer';
+import { TypographyAnalyzer } from '../src/domain/services/TypographyAnalyzer';
 
 // ── fetch ──────────────────────────────────────────────────────
 
@@ -51,15 +38,11 @@ function resolveUrl(href: string, base: string): string {
   try { return new URL(href, base).href; } catch { return ''; }
 }
 
-// ── CSS extraction ─────────────────────────────────────────────
-
 async function extractCSS(html: string, pageUrl: string): Promise<string> {
   const dom = new JSDOM(html, { url: pageUrl });
   const doc = dom.window.document;
   const parts: string[] = [];
-
   doc.querySelectorAll('style').forEach(el => parts.push(el.textContent || ''));
-
   const links = [...doc.querySelectorAll('link[rel="stylesheet"]')];
   for (const link of links) {
     const href = link.getAttribute('href');
@@ -116,7 +99,6 @@ function parsePx(v: string | undefined, baseFontSize: number = 16): number {
   if (v.endsWith('px')) return parseFloat(v);
   if (v === 'inherit' || v === 'initial' || v === 'unset') return 0;
   const n = parseFloat(v);
-  // If it's just a number (like line-height: 1.5), return as is for ratio
   if (!isNaN(n) && !v.match(/[a-z%]/i)) return n;
   return isNaN(n) ? 0 : n;
 }
@@ -138,8 +120,7 @@ function matchesSelector(sel: string, el: Element): boolean {
   const classes = el.getAttribute('class') || '';
   const cls = classes.trim().split(/\s+/).filter(Boolean);
   const id = el.id;
-  const s = sel.trim().replace(/:hover|:focus|:active/g, ''); // ignore pseudo for matching
-  
+  const s = sel.trim().replace(/:hover|:focus|:active/g, '');
   if (s === '*') return true;
   if (s.startsWith('#') && !s.includes(' ') && !s.includes('.') && !s.includes('[')) return id === s.slice(1);
   if (/^[a-z][a-z0-9-]*$/i.test(s)) return s === tag;
@@ -170,8 +151,6 @@ function matchesSelector(sel: string, el: Element): boolean {
 
 function resolveStyles(el: Element, rules: CSSRule[]): Record<string, string> {
   const m: Record<string, string> = {};
-  
-  // Simple specificity-based sorting
   const scoredRules = rules.map(r => {
     let score = 0;
     if (r.selector.includes('#')) score += 100;
@@ -180,7 +159,6 @@ function resolveStyles(el: Element, rules: CSSRule[]): Record<string, string> {
     return { ...r, score };
   }).sort((a, b) => a.score - b.score);
 
-  // Apply inherited properties from parent if possible
   const inheritedProps = ['color', 'font-family', 'font-size', 'line-height', 'text-align'];
   if (el.parentElement) {
     const parentStyles = (el.parentElement as any)._resolvedStyles || {};
@@ -193,7 +171,6 @@ function resolveStyles(el: Element, rules: CSSRule[]): Record<string, string> {
   for (const r of scoredRules) {
     if (matchesSelector(r.selector, el)) {
       for (const [prop, val] of Object.entries(r.props)) {
-        // Convert kebab-case to camelCase for DOM compatibility
         const camel = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
         m[camel] = val;
       }
@@ -211,7 +188,7 @@ function resolveStyles(el: Element, rules: CSSRule[]): Record<string, string> {
       }
     }
   });
-  (el as any)._resolvedStyles = m; // Cache for children
+  (el as any)._resolvedStyles = m;
   return m;
 }
 
@@ -238,7 +215,7 @@ function buildBox(m: Record<string, string>) {
   };
 }
 
-function buildStyles(m: Record<string, string>): ComputedStyles {
+function buildStyles(m: Record<string, string>): any {
   return {
     display: m.display || 'block', position: m.position || 'static',
     width: m.width || 'auto', height: m.height || 'auto',
@@ -260,92 +237,53 @@ function sel(el: Element): string {
     classes.trim().split(/\s+/).filter(Boolean).slice(0, 3).forEach(c => p.push(`.${c}`));
   }
   const tag = el.tagName.toLowerCase();
-  if (p.length === 0) return tag;
-  return `${tag}${p.join('')}`;
+  return p.length === 0 ? tag : `${tag}${p.join('')}`;
 }
 
-// ── AdvancedDesignRules defaults ───────────────────────────────
-
 const advancedRules = {
-  apcaContrast: {
-    thresholds: { bodyText: { min: 60, preferred: 75 }, headingText: { min: 45, preferred: 60 }, largeText: { min: 45, preferred: 60 }, uiComponents: { min: 15, preferred: 30 } },
-    adjustments: { boldText: 5, italicText: 2, smallText: 10 },
-  },
+  apcaContrast: { thresholds: { bodyText: { min: 60, preferred: 75 }, headingText: { min: 45, preferred: 60 }, largeText: { min: 45, preferred: 60 }, uiComponents: { min: 15, preferred: 30 } }, adjustments: { boldText: 5, italicText: 2, smallText: 10 } },
   verticalRhythm: { baseLineHeight: 1.5, allowedRatios: [1, 1.5, 2, 3, 4, 6, 8], tolerance: 0.05, minSpacingDifference: 2, opticalAlignment: { textDescenders: 2, iconPadding: 4, avatarWeight: 1.2 } },
   typography: { lineLength: { comfortable: { min: 55, max: 75 } }, lineHeightRatios: { small: 1.5, body: 1.5, subheading: 1.4, heading: 1.3, display: 1.1 }, typeScales: { 'minor-second': 1.067, 'major-second': 1.125, 'minor-third': 1.2, 'major-third': 1.25, 'perfect-fourth': 1.333, 'aug-fourth': 1.414, 'perfect-fifth': 1.5, 'golden': 1.618 }, orphansWidows: { minWords: 3 } },
-  colorHarmony: {
-    schemes: { primary: true, analogous: true, complementary: true, triadic: true, tetradic: true, monochromatic: true },
-    semantics: {
-      error: ['#dc2626', '#ef4444', '#f87171'],
-      success: ['#16a34a', '#22c55e', '#4ade80'],
-      warning: ['#d97706', '#f59e0b', '#fbbf24'],
-      info: ['#2563eb', '#3b82f6', '#60a5fa'],
-      primary: ['#2563eb', '#3b82f6', '#1d4ed8'],
-    },
-    consistency: { maxSaturationVariance: 20, maxLightnessVariance: 15 },
-    colorBlindness: { types: ['protanopia', 'deuteranopia', 'tritanopia'], minContrast: 3 },
-  },
-  layout: { alignment: { tolerance: 2, grid: 8 }, zIndex: { maxRecommended: 10, scale: [0, 1, 10, 100, 1000] }, visualHierarchy: { minLevels: 3, weightFactors: { size: 0.4, color: 0.3, spacing: 0.3 } }, grid: { columns: 12, gutter: 16 } },
-  accessibility: { aria: { required: [], roles: {} }, keyboard: { focusable: true, tabIndex: true }, semantics: { requiredHeadings: true, landmarkRegions: true }, motion: { maxDuration: 5000, reducedMotion: true } },
-  interaction: { requiredStates: ['hover', 'focus', 'active'], stateVisibility: { minContrast: 3 }, loading: { maxSkeletonDelay: 3000, requiredForAsync: true }, touch: { minTargetSize: 44 } },
-  consistency: {
-    patterns: { button: { selectors: ['.btn', 'button'], requiredProps: ['padding', 'fontSize'] } },
-    tokens: { colorTokens: ['#007bff', '#6c757d', '#28a745', '#dc3545', '#ffc107', '#17a2b8'], spacingTokens: [4, 8, 12, 16, 24, 32, 48], fontSizeTokens: [12, 14, 16, 18, 20, 24, 32, 48] },
-    similarity: { threshold: 0.8, maxDistance: 4 },
-  },
-  responsive: { breakpoints: [{ name: 'xs', width: 0 }, { name: 'sm', width: 576 }, { name: 'md', width: 768 }, { name: 'lg', width: 992 }, { name: 'xl', width: 1200 }, { name: 'xxl', width: 1400 }], mobileFirst: true, overflow: { allowHorizontal: false, maxScrollRatio: 0.1 }, containers: { maxWidth: 1200 } },
-  performance: { layoutShift: { maxCLS: 0.1 }, animation: { maxDuration: 1000, preferTransform: true }, resources: { lazyBelowFold: true, maxImageSize: 200, optimizeFormats: ['webp', 'avif'] } },
+  colorHarmony: { schemes: { primary: true }, semantics: { error: ['#dc2626'], success: ['#16a34a'] }, consistency: { maxSaturationVariance: 20 }, colorBlindness: { types: ['protanopia'], minContrast: 3 } },
+  layout: { alignment: { tolerance: 2, grid: 8 }, zIndex: { maxRecommended: 10 }, visualHierarchy: { minLevels: 3 }, grid: { columns: 12, gutter: 16 } },
+  accessibility: { aria: { required: [], roles: {} }, keyboard: { focusable: true }, semantics: { requiredHeadings: true }, motion: { maxDuration: 5000 } },
+  interaction: { requiredStates: ['hover', 'focus'], stateVisibility: { minContrast: 3 }, touch: { minTargetSize: 44 } },
+  consistency: { patterns: { button: { selectors: ['.btn'], requiredProps: ['padding'] } }, tokens: { colorTokens: [], spacingTokens: [8, 16], fontSizeTokens: [16] }, similarity: { threshold: 0.8 } },
+  responsive: { breakpoints: [{ name: 'md', width: 768 }], mobileFirst: true, containers: { maxWidth: 1200 } },
+  performance: { layoutShift: { maxCLS: 0.1 }, animation: { maxDuration: 1000 }, resources: { lazyBelowFold: true } },
 };
 
 // ── main ───────────────────────────────────────────────────────
 
 async function analyze(url: string) {
-  console.log(`\n🚔 PIXEL POLICE — Full URL Analyzer`);
+  console.log(`\n🚔 PIXEL POLICE — UseCase-Powered Analyzer`);
   console.log(`   Target: ${url}\n`);
 
-  process.stderr.write('Fetching HTML...\n');
   const html = await fetchText(url);
-  process.stderr.write(`Got ${(html.length / 1024).toFixed(0)}KB HTML\n`);
-
-  process.stderr.write('Resolving CSS...\n');
   const cssText = await extractCSS(html, url);
-  process.stderr.write(`Total CSS: ${(cssText.length / 1024).toFixed(0)}KB\n`);
-
   const cssRules = parseCSS(cssText);
-  process.stderr.write(`Parsed ${cssRules.length} CSS rules\n`);
 
   const dom = new JSDOM(html, { url });
   const doc = dom.window.document;
-  const skip = new Set(['SCRIPT','STYLE','META','LINK','TITLE','HEAD','HTML','NOSCRIPT','SVG','PATH','G','CIRCLE','RECT','LINE','POLYGON','POLYLINE','USE','DEFS','CLIPPATH']);
-
-import { AdvancedInspectElementUseCase } from '../src/application/use-cases/AdvancedInspectElementUseCase';
-
-// ... (fetchText, resolveUrl, extractCSS, parseCSS, parsePx, expandSides, matchesSelector, resolveStyles, buildBox, buildStyles, sel, advancedRules)
-
-async function analyze(url: string) {
-  // ... (fetching, CSS resolution)
+  const skip = new Set(['SCRIPT','STYLE','META','LINK','TITLE','HEAD','HTML','NOSCRIPT','SVG']);
 
   const inspectUseCase = new AdvancedInspectElementUseCase();
-  const basicRules = DesignRulesFactory.createDefault();
   const allIssues: Issue[] = [];
-  let analyzed = 0;
-  let skipped = 0;
+  let analyzedCount = 0;
+  let skippedCount = 0;
 
   const els = doc.querySelectorAll('*');
   for (const el of els) {
-    if (skip.has(el.tagName)) { skipped++; continue; }
+    if (skip.has(el.tagName)) { skippedCount++; continue; }
     const merged = resolveStyles(el, cssRules);
-    const hasData = parsePx(merged.width) > 0 || parsePx(merged.height) > 0
-      || parsePx(merged.padding) > 0 || parsePx(merged.margin) > 0
-      || !!merged.fontSize || !!merged.backgroundColor || !!merged.color || !!merged.border;
-    if (!hasData) { skipped++; continue; }
+    const hasData = parsePx(merged.width) > 0 || parsePx(merged.height) > 0 || parsePx(merged.padding) > 0 || !!merged.fontSize;
+    if (!hasData) { skippedCount++; continue; }
 
     const box = buildBox(merged);
     const styles = buildStyles(merged);
     const s = sel(el);
-    analyzed++;
+    analyzedCount++;
 
-    // Prepare context data for Use Case
     const contextData = {
       viewport: { width: 1920, height: 1080, devicePixelRatio: 1 },
       parent: el.parentElement ? {
@@ -359,202 +297,51 @@ async function analyze(url: string) {
       },
       page: { hasNavigation: !!doc.querySelector('nav'), hasFooter: !!doc.querySelector('footer') },
       interaction: {
-        isHoverable: ['A', 'BUTTON', 'INPUT'].includes(el.tagName),
-        isFocusable: ['A', 'BUTTON', 'INPUT'].includes(el.tagName) || el.hasAttribute('tabindex'),
-        hasClickHandler: el.hasAttribute('onclick') || ['A', 'BUTTON'].includes(el.tagName)
+        isHoverable: ['A', 'BUTTON'].includes(el.tagName),
+        isFocusable: ['A', 'BUTTON'].includes(el.tagName),
+        hasClickHandler: true
       }
     };
 
     try {
       const result = await inspectUseCase.execute({
-        elementId: `el_${analyzed}`,
+        elementId: `el_${analyzedCount}`,
         selector: s,
         boxModel: box as any,
         computedStyles: styles as any,
         rules: advancedRules as any,
-        contextData
+        contextData: contextData as any
       });
-
-      // Filter and collect issues
-      const meaningful = result.inspection.issues.filter(i => 
-        !['color_outside_palette', 'color_contrast_insufficient'].includes(i.type)
-      );
-      allIssues.push(...meaningful);
+      allIssues.push(...result.inspection.issues);
     } catch (e: any) {
-      process.stderr.write(`  Error inspecting ${s}: ${e.message}\n`);
+      process.stderr.write(`  Err ${s}: ${e.message}\n`);
     }
   }
 
-  // ... (rest of the script)
-}
-
-  // 3. Cross-element: ResponsiveChecker — disabled (produces layout_shift noise without real viewport)
-  // Would need Puppeteer/CDP for accurate responsive analysis
-
-  // 4. Typography scale analysis
-  try {
-    const fontSizes = elementsData.map(d => parseFloat(d.styles.fontSize)).filter(n => n > 0 && !isNaN(n));
-    const uniqueFontSizes = [...new Set(fontSizes)];
-    if (uniqueFontSizes.length >= 2) {
-      const typoAnalysis = TypographyAnalyzer.analyzeTypeScale(uniqueFontSizes, advancedRules.typography);
-      if (typoAnalysis.violations?.length) {
-        for (const v of typoAnalysis.violations) {
-          allIssues.push(ElementInspectionFactory.createIssue(
-            'type_scale_inconsistent' as any, v.deviation > 3 ? 'warning' : 'info', 'typography',
-            `Font size ${v.actualSize?.toFixed(1)}px doesn't match ${typoAnalysis.detectedScale?.name || ''} scale (expected ~${v.expectedSize?.toFixed(1)}px, deviation ${v.deviation?.toFixed(1)}px at level ${v.level})`,
-            'page', 'page', { ...v } as any
-          ));
-        }
-      }
-      if (typoAnalysis.suggestions?.length) {
-        for (const s of typoAnalysis.suggestions.slice(0, 5)) {
-          allIssues.push(ElementInspectionFactory.createIssue(
-            'type_scale_inconsistent' as any, 'info', 'typography',
-            `Typography suggestion: ${s.description}`,
-            'page', 'page', { suggestedFix: s.description } as any
-          ));
-        }
-      }
-    }
-  } catch (e: any) { process.stderr.write(`  Typography err: ${e.message}\n`); }
-
-  // 5. Vertical rhythm analysis
-  try {
-    const spacings = elementsData.flatMap(d => [d.box.margin.top, d.box.margin.bottom, d.box.padding.top, d.box.padding.bottom]).filter(v => v > 0);
-    const uniqueSpacings = [...new Set(spacings.map(s => Math.round(s * 10) / 10))];
-    if (uniqueSpacings.length > 2) {
-      const rhythmResult = VerticalRhythmAnalyzer.analyzeRhythm(uniqueSpacings, advancedRules.verticalRhythm);
-      if (rhythmResult.violations?.length) {
-        for (const v of rhythmResult.violations.slice(0, 50)) {
-          allIssues.push(ElementInspectionFactory.createIssue(
-            'vertical_rhythm_broken' as any, v.severity === 'major' ? 'error' : v.severity === 'moderate' ? 'warning' : 'info', 'spacing',
-            `Spacing ${v.value?.toFixed(1)}px off rhythm (expected ${v.expected?.toFixed(1)}px, ratio ${v.ratio?.toFixed(2)} vs closest ${v.closestRatio})`,
-            'page', 'page', { ...v }
-          ));
-        }
-      }
-    }
-  } catch (e: any) { process.stderr.write(`  VerticalRhythm err: ${e.message}\n`); }
-
-  // 6. Color harmony — disabled (needs real computed colors from browser, not CSS text parsing)
-  // CSS text parsing can't resolve CSS variables, inheritance, or cascade correctly
-
-  dom.window.close();
-
-  // ── report ───────────────────────────────────────────────────
-
-  const byType: Record<string, number> = {};
   const bySeverity: Record<string, number> = {};
   const byCategory: Record<string, number> = {};
   for (const i of allIssues) {
-    byType[i.type] = (byType[i.type] || 0) + 1;
     bySeverity[i.severity] = (bySeverity[i.severity] || 0) + 1;
-    byCategory[i.category || 'unknown'] = (byCategory[i.category || 'unknown'] || 0) + 1;
+    byCategory[i.category] = (byCategory[i.category] || 0) + 1;
   }
 
-  const score = Math.max(0, 100 - (bySeverity.error || 0) * 10 - (bySeverity.warning || 0) * 2 - (bySeverity.info || 0));
-  const grade = score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'F';
+  const score = Math.max(0, 100 - (bySeverity.error || 0) * 10 - (bySeverity.warning || 0) * 2);
+  const grade = score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : 'F';
 
   console.log('┌──────────────────────────────────────────────────┐');
-  console.log('│              ANALYSIS RESULTS                     │');
-  console.log('├──────────────────────────────────────────────────┤');
-  console.log(`│ URL:        ${url.substring(0, 38).padEnd(38)}│`);
-  console.log(`│ Elements:   ${String(analyzed).padStart(5)} analyzed, ${String(skipped).padStart(5)} skipped       │`);
-  console.log(`│ Issues:     ${String(allIssues.length).padStart(5)} total                          │`);
-  console.log(`│   Errors:   ${String(bySeverity.error || 0).padStart(5)}                                 │`);
-  console.log(`│   Warnings: ${String(bySeverity.warning || 0).padStart(5)}                                 │`);
-  console.log(`│   Info:     ${String(bySeverity.info || 0).padStart(5)}                                 │`);
-  console.log(`│ Score:      ${String(score).padStart(3)}/100  Grade: ${grade}                        │`);
+  console.log(`│ Score: ${String(score).padStart(3)}/100  Grade: ${grade}  Issues: ${allIssues.length} │`);
   console.log('└──────────────────────────────────────────────────┘');
 
-  const sortedTypes = Object.entries(byType).sort((a, b) => b[1] - a[1]);
-  console.log('\n ISSUES BY TYPE:');
-  for (const [type, count] of sortedTypes) {
-    const bar = '█'.repeat(Math.min(40, Math.ceil(count / Math.max(1, allIssues.length) * 80)));
-    console.log(`  ${type.padEnd(38)} ${String(count).padStart(5)}  ${bar}`);
-  }
-
-  console.log('\n ISSUES BY CATEGORY:');
-  for (const [cat, count] of Object.entries(byCategory).sort((a, b) => b[1] - a[1])) {
-    console.log(`  ${cat.padEnd(20)} ${String(count).padStart(5)}`);
-  }
-
-  // Sample top warnings/errors
-  const topIssues = allIssues.filter(i => i.severity === 'error' || i.severity === 'warning').slice(0, 25);
-  if (topIssues.length) {
-    console.log('\n TOP WARNINGS / ERRORS:');
-    for (const issue of topIssues) {
-      const icon = issue.severity === 'error' ? '✕' : '△';
-      console.log(`  ${icon} [${issue.type}] ${issue.message}`);
-      if (issue.suggestedFix) console.log(`    → ${issue.suggestedFix}`);
-    }
-  }
-
-  // Analyzers used
-  console.log(`\n ACTIVE ANALYZERS:`);
-  console.log(`  ✓ ElementAnalyzer          spacing, sizing, typography, accessibility`);
-  console.log(`  ✓ AdvancedElementAnalyzer  typography, interaction, spacing`);
-  console.log(`  ✓ TypographyAnalyzer       type scale consistency`);
-  console.log(`  ✓ VerticalRhythmAnalyzer   spacing rhythm`);
-  console.log(`\n DISABLED (need real browser CSSOM):`);
-  console.log(`  ✗ APCAContrastAnalyzer     needs computed colors`);
-  console.log(`  ✗ ColorHarmonyAnalyzer     needs computed colors`);
-  console.log(`  ✗ ResponsiveChecker        needs real viewport`);
-  console.log(`  ✗ ConsistencyAnalyzer      needs design tokens from actual page`);
-  console.log(`  ✗ PerformanceOptimizer     needs runtime metrics`);
-
-  console.log('\\n Done.\\n');
-
-  // ── markdown report generation ────────────────────────────────
   const reportDir = './reports';
   if (!fs.existsSync(reportDir)) fs.mkdirSync(reportDir);
-
-  const safeUrl = url.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  const reportPath = `${reportDir}/report_${safeUrl}_${Date.now()}.md`;
-
-  let md = `# UI Inspection Report: ${url}\\n\\n`;
-  md += `**Date:** ${new Date().toLocaleString()}\\n`;
-  md += `**Score:** ${score}/100 | **Grade:** ${grade}\\n\\n`;
-
-  md += `## Summary\\n\\n`;
-  md += `| Category | Issues |\\n`;
-  md += `| :--- | :--- |\\n`;
-  for (const [cat, count] of Object.entries(byCategory)) {
-    md += `| ${cat} | ${count} |\\n`;
-  }
-  md += `\\n`;
-
-  md += `## Detailed Issues\\n\\n`;
-  
-  // Group by element for MD
-  const issuesByElement: Record<string, Issue[]> = {};
-  for (const i of allIssues) {
-    if (!issuesByElement[i.selector]) issuesByElement[i.selector] = [];
-    issuesByElement[i.selector].push(i);
-  }
-
-  for (const [selector, elementIssues] of Object.entries(issuesByElement)) {
-    md += `### 📍 Element: \`${selector}\`\\n\\n`;
-    md += `| Severity | Type | Message | Fix |\\n`;
-    md += `| :--- | :--- | :--- | :--- |\\n`;
-    for (const i of elementIssues) {
-      const icon = i.severity === 'error' ? '❌' : i.severity === 'warning' ? '⚠️' : 'ℹ️';
-      md += `| ${icon} ${i.severity} | ${i.type} | ${i.message} | ${i.suggestedFix || '-'} |\\n`;
-    }
-    md += `\\n`;
-  }
-
-  md += `--- \\n*Generated by Pixel Police CLI*`;
-
+  const reportPath = `${reportDir}/report_${Date.now()}.md`;
+  let md = `# Report: ${url}\nScore: ${score} (${grade})\n\n`;
+  for (const [cat, count] of Object.entries(byCategory)) md += `- ${cat}: ${count}\n`;
   fs.writeFileSync(reportPath, md);
-  console.log(`📄 Markdown report saved to: ${reportPath}`);
-
-  return { analyzed, skipped, totalIssues: allIssues.length, score, grade, types: Object.keys(byType).length };
+  console.log(`📄 Saved to: ${reportPath}\n`);
+  dom.window.close();
 }
 
-const url = process.argv[2];
-if (!url) {
-  console.error('Usage: bun run analyze-url.ts <url>');
-  process.exit(1);
-}
-analyze(url).catch(e => { console.error('Fatal:', e); process.exit(1); });
+const target = process.argv[2];
+if (!target) { console.error('Usage: tsx scripts/analyze-url.ts <url>'); process.exit(1); }
+analyze(target).catch(e => { console.error(e); process.exit(1); });

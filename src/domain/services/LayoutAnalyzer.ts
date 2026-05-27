@@ -308,34 +308,36 @@ export class LayoutAnalyzer {
     let weight = 0;
 
     // Size factor
-    const area = (boxModel.width || 0) * (boxModel.height || 0);
-    weight += Math.min(area / 1000, 50) * factors.size;
+    const area = (boxModel?.width || 0) * (boxModel?.height || 0);
+    if (factors?.size) {
+      weight += Math.min(area / 1000, 50) * factors.size;
+    }
 
     // Color saturation (simplified - would need proper color analysis)
-    if (styles.backgroundColor && styles.backgroundColor !== 'transparent') {
-      weight += factors.colorSaturation * 0.5; // Assume medium saturation
+    if (styles?.backgroundColor && styles.backgroundColor !== 'transparent') {
+      weight += (factors?.colorSaturation || 0) * 0.5; // Assume medium saturation
     }
 
     // Border weight
-    if (styles.border && styles.border !== 'none') {
+    if (styles?.border && styles.border !== 'none') {
       const borderWidth = parseFloat(styles.border.split(' ')[0]) || 0;
-      weight += borderWidth * factors.borderWeight;
+      weight += borderWidth * (factors?.borderWeight || 0);
     }
 
     // Shadow presence
-    if (styles.boxShadow && styles.boxShadow !== 'none') {
-      weight += factors.shadowPresence;
+    if (styles?.boxShadow && styles.boxShadow !== 'none') {
+      weight += (factors?.shadowPresence || 0);
     }
 
     // Font weight
-    if (styles.fontWeight) {
+    if (styles?.fontWeight) {
       const fontWeight = parseInt(styles.fontWeight) || 400;
-      weight += ((fontWeight - 400) / 100) * factors.fontWeight;
+      weight += ((fontWeight - 400) / 100) * (factors?.fontWeight || 0);
     }
 
     // Position factor (top = higher weight)
-    const top = boxModel.top || 0;
-    weight += (1 - Math.min(top / 1000, 1)) * factors.position;
+    const top = boxModel?.top || 0;
+    weight += (1 - Math.min(top / 1000, 1)) * (factors?.position || 0);
 
     return Math.min(weight, 100); // Cap at 100
   }
