@@ -542,5 +542,5 @@ function generateReport(inspections, totalAnalyzed, skippedCount, filePath) {
 }
 
 // Run the analysis
-const htmlFilePath = process.argv[2] || './KeygenCustomerPortalFrontend.html';
+const htmlFilePath = process.argv[2] || './samples/KeygenCustomerPortalFrontend.html';
 analyzeHTMLFile(htmlFilePath).catch(console.error);

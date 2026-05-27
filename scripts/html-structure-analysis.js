@@ -21,7 +21,7 @@ const fs = require('fs');
 const { JSDOM } = require('jsdom');
 
 // Read and parse HTML
-const htmlContent = fs.readFileSync('./KeygenCustomerPortalFrontend.html', 'utf8');
+const htmlContent = fs.readFileSync('./samples/KeygenCustomerPortalFrontend.html', 'utf8');
 const dom = new JSDOM(htmlContent, {
   url: 'http://localhost:4200/dashboard'
 });

@@ -10,21 +10,21 @@
  */
 
 import { JSDOM } from 'jsdom';
-import { ElementAnalyzer } from './src/domain/services/ElementAnalyzer';
-import { AdvancedElementAnalyzer } from './src/domain/services/AdvancedElementAnalyzer';
-import { APCAContrastAnalyzer } from './src/domain/services/APCAContrastAnalyzer';
-import { VerticalRhythmAnalyzer } from './src/domain/services/VerticalRhythmAnalyzer';
-import { TypographyAnalyzer } from './src/domain/services/TypographyAnalyzer';
-import { ColorHarmonyAnalyzer } from './src/domain/services/ColorHarmonyAnalyzer';
-import { LayoutAnalyzer } from './src/domain/services/LayoutAnalyzer';
-import { InteractionAnalyzer } from './src/domain/services/InteractionAnalyzer';
-import { ResponsiveAnalyzer } from './src/domain/services/ResponsiveAnalyzer';
-import { PerformanceAnalyzer } from './src/domain/services/PerformanceAnalyzer';
-import { ConsistencyAnalyzer } from './src/domain/services/ConsistencyAnalyzer';
-import { ResponsiveChecker } from './src/domain/services/ResponsiveChecker';
-import { DesignRulesFactory } from './src/domain/entities/DesignRules';
-import { ElementInspectionFactory, Issue } from './src/domain/entities/ElementInspection';
-import { ComputedStyles } from './src/domain/entities/ElementInspection';
+import { ElementAnalyzer } from '../src/domain/services/ElementAnalyzer';
+import { AdvancedElementAnalyzer } from '../src/domain/services/AdvancedElementAnalyzer';
+import { APCAContrastAnalyzer } from '../src/domain/services/APCAContrastAnalyzer';
+import { VerticalRhythmAnalyzer } from '../src/domain/services/VerticalRhythmAnalyzer';
+import { TypographyAnalyzer } from '../src/domain/services/TypographyAnalyzer';
+import { ColorHarmonyAnalyzer } from '../src/domain/services/ColorHarmonyAnalyzer';
+import { LayoutAnalyzer } from '../src/domain/services/LayoutAnalyzer';
+import { InteractionAnalyzer } from '../src/domain/services/InteractionAnalyzer';
+import { ResponsiveAnalyzer } from '../src/domain/services/ResponsiveAnalyzer';
+import { PerformanceAnalyzer } from '../src/domain/services/PerformanceAnalyzer';
+import { ConsistencyAnalyzer } from '../src/domain/services/ConsistencyAnalyzer';
+import { ResponsiveChecker } from '../src/domain/services/ResponsiveChecker';
+import { DesignRulesFactory } from '../src/domain/entities/DesignRules';
+import { ElementInspectionFactory, Issue } from '../src/domain/entities/ElementInspection';
+import { ComputedStyles } from '../src/domain/entities/ElementInspection';
 import http from 'http';
 import https from 'https';
 import { URL } from 'url';
