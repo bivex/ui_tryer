@@ -112,6 +112,18 @@ class ContentScript {
           }
           break;
 
+        default:
+          sendResponse({ success: false, error: `Unknown message type: ${message.type}` });
+      }
+    } catch (error) {
+      console.error('Content script error:', error);
+      sendResponse({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
   /**
    * Run a full page raid - scan all elements and show visual markers
    */
@@ -239,18 +251,6 @@ class ContentScript {
   private clearRaidMarkers(): void {
     const markers = document.querySelectorAll('.pixel-police-crime-marker');
     markers.forEach(m => m.remove());
-  }
-
-        default:
-          sendResponse({ success: false, error: `Unknown message type: ${message.type}` });
-      }
-    } catch (error) {
-      console.error('Content script error:', error);
-      sendResponse({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
   }
 
   /**
