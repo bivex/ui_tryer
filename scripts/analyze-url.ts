@@ -106,17 +106,19 @@ function parseCSS(css: string): CSSRule[] {
 
 // ── style resolution ───────────────────────────────────────────
 
-function parsePx(v: string | undefined): number {
+function parsePx(v: string | undefined, baseFontSize: number = 16): number {
   if (!v) return 0;
   v = v.trim();
-  if (v.endsWith('rem')) return parseFloat(v) * 16;
-  if (v.endsWith('em')) return parseFloat(v) * 16;
+  if (v === '0') return 0;
+  if (v.endsWith('rem')) return parseFloat(v) * baseFontSize;
+  if (v.endsWith('em')) return parseFloat(v) * baseFontSize;
   if (v.endsWith('pt')) return parseFloat(v) * (4 / 3);
   if (v.endsWith('px')) return parseFloat(v);
+  if (v === 'inherit' || v === 'initial' || v === 'unset') return 0;
   const n = parseFloat(v);
-  // Unitless values < 1 are likely CSS keywords or parsing artifacts
-  if (n > 0 && n < 1 && !v.includes('px')) return 0;
-  return n || 0;
+  // If it's just a number (like line-height: 1.5), return as is for ratio
+  if (!isNaN(n) && !v.match(/[a-z%]/i)) return n;
+  return isNaN(n) ? 0 : n;
 }
 
 function expandSides(v: string | undefined): { top: number; right: number; bottom: number; left: number } {
@@ -133,9 +135,11 @@ function expandSides(v: string | undefined): { top: number; right: number; botto
 
 function matchesSelector(sel: string, el: Element): boolean {
   const tag = el.tagName.toLowerCase();
-  const cls = (el.className && typeof el.className === 'string') ? el.className.trim().split(/\s+/).filter(Boolean) : [];
+  const classes = el.getAttribute('class') || '';
+  const cls = classes.trim().split(/\s+/).filter(Boolean);
   const id = el.id;
-  const s = sel.trim();
+  const s = sel.trim().replace(/:hover|:focus|:active/g, ''); // ignore pseudo for matching
+  
   if (s === '*') return true;
   if (s.startsWith('#') && !s.includes(' ') && !s.includes('.') && !s.includes('[')) return id === s.slice(1);
   if (/^[a-z][a-z0-9-]*$/i.test(s)) return s === tag;
@@ -166,7 +170,27 @@ function matchesSelector(sel: string, el: Element): boolean {
 
 function resolveStyles(el: Element, rules: CSSRule[]): Record<string, string> {
   const m: Record<string, string> = {};
-  for (const r of rules) {
+  
+  // Simple specificity-based sorting
+  const scoredRules = rules.map(r => {
+    let score = 0;
+    if (r.selector.includes('#')) score += 100;
+    if (r.selector.includes('.')) score += 10;
+    if (r.selector.match(/^[a-z]/i)) score += 1;
+    return { ...r, score };
+  }).sort((a, b) => a.score - b.score);
+
+  // Apply inherited properties from parent if possible
+  const inheritedProps = ['color', 'font-family', 'font-size', 'line-height', 'text-align'];
+  if (el.parentElement) {
+    const parentStyles = (el.parentElement as any)._resolvedStyles || {};
+    for (const p of inheritedProps) {
+      const camel = p.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      if (parentStyles[camel]) m[camel] = parentStyles[camel];
+    }
+  }
+
+  for (const r of scoredRules) {
     if (matchesSelector(r.selector, el)) {
       for (const [prop, val] of Object.entries(r.props)) {
         // Convert kebab-case to camelCase for DOM compatibility
@@ -187,6 +211,7 @@ function resolveStyles(el: Element, rules: CSSRule[]): Record<string, string> {
       }
     }
   });
+  (el as any)._resolvedStyles = m; // Cache for children
   return m;
 }
 
@@ -218,6 +243,7 @@ function buildStyles(m: Record<string, string>): ComputedStyles {
     display: m.display || 'block', position: m.position || 'static',
     width: m.width || 'auto', height: m.height || 'auto',
     fontSize: m.fontSize || '16px', lineHeight: m.lineHeight || '1.5',
+    fontFamily: m.fontFamily || 'sans-serif', fontWeight: m.fontWeight || '400',
     color: m.color || '#000000', backgroundColor: m.backgroundColor || 'transparent',
     borderColor: m.borderTopColor || m.borderColor || '#000000',
     margin: m.margin || '0px', padding: m.padding || '0px', border: m.border || '0px',
@@ -229,10 +255,13 @@ function buildStyles(m: Record<string, string>): ComputedStyles {
 function sel(el: Element): string {
   const p: string[] = [];
   if (el.id) p.push(`#${el.id}`);
-  if (el.className && typeof el.className === 'string')
-    el.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).forEach(c => p.push(`.${c}`));
-  p.push(el.tagName.toLowerCase());
-  return p.join('');
+  const classes = el.getAttribute('class');
+  if (classes) {
+    classes.trim().split(/\s+/).filter(Boolean).slice(0, 3).forEach(c => p.push(`.${c}`));
+  }
+  const tag = el.tagName.toLowerCase();
+  if (p.length === 0) return tag;
+  return `${tag}${p.join('')}`;
 }
 
 // ── AdvancedDesignRules defaults ───────────────────────────────
@@ -289,13 +318,18 @@ async function analyze(url: string) {
   const doc = dom.window.document;
   const skip = new Set(['SCRIPT','STYLE','META','LINK','TITLE','HEAD','HTML','NOSCRIPT','SVG','PATH','G','CIRCLE','RECT','LINE','POLYGON','POLYLINE','USE','DEFS','CLIPPATH']);
 
+import { AdvancedInspectElementUseCase } from '../src/application/use-cases/AdvancedInspectElementUseCase';
+
+// ... (fetchText, resolveUrl, extractCSS, parseCSS, parsePx, expandSides, matchesSelector, resolveStyles, buildBox, buildStyles, sel, advancedRules)
+
+async function analyze(url: string) {
+  // ... (fetching, CSS resolution)
+
+  const inspectUseCase = new AdvancedInspectElementUseCase();
   const basicRules = DesignRulesFactory.createDefault();
   const allIssues: Issue[] = [];
   let analyzed = 0;
   let skipped = 0;
-
-  // Collect all resolved data for cross-element analyzers
-  const elementsData: { selector: string; box: any; styles: ComputedStyles; merged: Record<string, string> }[] = [];
 
   const els = doc.querySelectorAll('*');
   for (const el of els) {
@@ -311,31 +345,48 @@ async function analyze(url: string) {
     const s = sel(el);
     analyzed++;
 
-    // 1. Basic ElementAnalyzer (spacing, sizing, typography, accessibility)
+    // Prepare context data for Use Case
+    const contextData = {
+      viewport: { width: 1920, height: 1080, devicePixelRatio: 1 },
+      parent: el.parentElement ? {
+        display: (el.parentElement as any)._resolvedStyles?.display || 'block',
+        width: parsePx((el.parentElement as any)._resolvedStyles?.width),
+        height: parsePx((el.parentElement as any)._resolvedStyles?.height),
+      } : undefined,
+      siblings: {
+        count: el.parentElement ? el.parentElement.children.length - 1 : 0,
+        similarElements: el.parentElement ? Array.from(el.parentElement.children).filter(c => c.tagName === el.tagName).length - 1 : 0
+      },
+      page: { hasNavigation: !!doc.querySelector('nav'), hasFooter: !!doc.querySelector('footer') },
+      interaction: {
+        isHoverable: ['A', 'BUTTON', 'INPUT'].includes(el.tagName),
+        isFocusable: ['A', 'BUTTON', 'INPUT'].includes(el.tagName) || el.hasAttribute('tabindex'),
+        hasClickHandler: el.hasAttribute('onclick') || ['A', 'BUTTON'].includes(el.tagName)
+      }
+    };
+
     try {
-      const insp = ElementAnalyzer.analyzeElement(s, s, box, styles, basicRules);
-      // Filter out noisy issue types that don't work well without a real browser CSSOM
-      const meaningful = insp.issues.filter(i =>
+      const result = await inspectUseCase.execute({
+        elementId: `el_${analyzed}`,
+        selector: s,
+        boxModel: box as any,
+        computedStyles: styles as any,
+        rules: advancedRules as any,
+        contextData
+      });
+
+      // Filter and collect issues
+      const meaningful = result.inspection.issues.filter(i => 
         !['color_outside_palette', 'color_contrast_insufficient'].includes(i.type)
       );
       allIssues.push(...meaningful);
-    } catch {}
-
-    // 2. AdvancedElementAnalyzer — only keep useful checks
-    try {
-      const advInsp = AdvancedElementAnalyzer.analyzeElement(s, s, box, styles, advancedRules as any);
-      // Only keep: typography, interaction, spacing. Skip: consistency (token noise), APCA (no real colors), color semantics
-      const meaningful = advInsp.issues.filter(i =>
-        ['text_too_small', 'line_height_inadequate', 'line_length_too_long',
-          'state_styles_missing', 'asymmetric_spacing', 'spacing_not_on_grid',
-          'too_small_clickable_area', 'vertical_rhythm_broken',
-        ].includes(i.type)
-      );
-      allIssues.push(...meaningful);
-    } catch {}
-
-    elementsData.push({ selector: s, box, styles, merged });
+    } catch (e: any) {
+      process.stderr.write(`  Error inspecting ${s}: ${e.message}\n`);
+    }
   }
+
+  // ... (rest of the script)
+}
 
   // 3. Cross-element: ResponsiveChecker — disabled (produces layout_shift noise without real viewport)
   // Would need Puppeteer/CDP for accurate responsive analysis
@@ -351,7 +402,7 @@ async function analyze(url: string) {
           allIssues.push(ElementInspectionFactory.createIssue(
             'type_scale_inconsistent' as any, v.deviation > 3 ? 'warning' : 'info', 'typography',
             `Font size ${v.actualSize?.toFixed(1)}px doesn't match ${typoAnalysis.detectedScale?.name || ''} scale (expected ~${v.expectedSize?.toFixed(1)}px, deviation ${v.deviation?.toFixed(1)}px at level ${v.level})`,
-            'page', 'page', { ...v, detectedScale: typoAnalysis.detectedScale }
+            'page', 'page', { ...v } as any
           ));
         }
       }
@@ -360,7 +411,7 @@ async function analyze(url: string) {
           allIssues.push(ElementInspectionFactory.createIssue(
             'type_scale_inconsistent' as any, 'info', 'typography',
             `Typography suggestion: ${s.description}`,
-            'page', 'page', { ...s }
+            'page', 'page', { suggestedFix: s.description } as any
           ));
         }
       }
@@ -435,7 +486,7 @@ async function analyze(url: string) {
     for (const issue of topIssues) {
       const icon = issue.severity === 'error' ? '✕' : '△';
       console.log(`  ${icon} [${issue.type}] ${issue.message}`);
-      if (issue.metadata?.suggestedFix) console.log(`    → ${issue.metadata.suggestedFix}`);
+      if (issue.suggestedFix) console.log(`    → ${issue.suggestedFix}`);
     }
   }
 
@@ -488,7 +539,7 @@ async function analyze(url: string) {
     md += `| :--- | :--- | :--- | :--- |\\n`;
     for (const i of elementIssues) {
       const icon = i.severity === 'error' ? '❌' : i.severity === 'warning' ? '⚠️' : 'ℹ️';
-      md += `| ${icon} ${i.severity} | ${i.type} | ${i.message} | ${i.metadata?.suggestedFix || '-'} |\\n`;
+      md += `| ${icon} ${i.severity} | ${i.type} | ${i.message} | ${i.suggestedFix || '-'} |\\n`;
     }
     md += `\\n`;
   }
