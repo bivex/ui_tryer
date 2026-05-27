@@ -32,7 +32,15 @@ export class RaidService {
   public updateRaidOverlay(overlay: HTMLElement, crimeCount: number, elementCount: number, onClose: () => void): void {
     const status = overlay.querySelector('#raid-status');
     if (status) {
-      status.textContent = `CRIME WAVE DETECTED: ${crimeCount} violations in ${elementCount} elements!`;
+      if (crimeCount > 0) {
+        status.textContent = `CRIME WAVE DETECTED: ${crimeCount} violations in ${elementCount} elements!`;
+        overlay.style.backgroundColor = '#dc2626'; // Red
+      } else {
+        status.textContent = 'Не найдено (UI crimes not found)';
+        overlay.style.backgroundColor = '#16a34a'; // Green
+        // Auto-remove green overlay after 3s if no crimes
+        setTimeout(onClose, 3000);
+      }
     }
     
     // Add a close button
