@@ -310,37 +310,34 @@ async function analyze(url: string) {
     const s = sel(el);
     analyzed++;
 
-    // 1. Basic ElementAnalyzer (spacing, sizing, typography, color, accessibility)
+    // 1. Basic ElementAnalyzer (spacing, sizing, typography, accessibility)
     try {
       const insp = ElementAnalyzer.analyzeElement(s, s, box, styles, basicRules);
-      allIssues.push(...insp.issues);
+      // Filter out noisy issue types that don't work well without a real browser CSSOM
+      const meaningful = insp.issues.filter(i =>
+        !['color_outside_palette', 'color_contrast_insufficient'].includes(i.type)
+      );
+      allIssues.push(...meaningful);
     } catch {}
 
-    // 2. AdvancedElementAnalyzer (APCA, vertical rhythm, typography advanced, color harmony, layout, interaction, responsive, performance, consistency)
+    // 2. AdvancedElementAnalyzer — only keep useful checks
     try {
       const advInsp = AdvancedElementAnalyzer.analyzeElement(s, s, box, styles, advancedRules as any);
-      allIssues.push(...advInsp.issues);
+      // Only keep: typography, interaction, spacing. Skip: consistency (token noise), APCA (no real colors), color semantics
+      const meaningful = advInsp.issues.filter(i =>
+        ['text_too_small', 'line_height_inadequate', 'line_length_too_long',
+          'state_styles_missing', 'asymmetric_spacing', 'spacing_not_on_grid',
+          'too_small_clickable_area', 'vertical_rhythm_broken',
+        ].includes(i.type)
+      );
+      allIssues.push(...meaningful);
     } catch {}
 
     elementsData.push({ selector: s, box, styles, merged });
   }
 
-  // 3. Cross-element: ResponsiveChecker (limit to avoid stack overflow)
-  try {
-    const viewport = { width: 1920, height: 1080 };
-    const subset = elementsData.filter(d => {
-      const w = parsePx(d.merged.width);
-      const h = parsePx(d.merged.height);
-      return w >= 100 && h >= 20; // Only check sizable elements
-    }).slice(0, 100);
-    if (subset.length >= 2) {
-      const inspections = subset.map(d =>
-        ElementAnalyzer.analyzeElement(d.selector, d.selector, d.box, d.styles, basicRules)
-      );
-      const respIssues = ResponsiveChecker.checkResponsiveBehavior(inspections, viewport, basicRules);
-      allIssues.push(...respIssues.slice(0, 200));
-    }
-  } catch (e: any) { process.stderr.write(`  ResponsiveChecker err: ${e.message}\n`); }
+  // 3. Cross-element: ResponsiveChecker — disabled (produces layout_shift noise without real viewport)
+  // Would need Puppeteer/CDP for accurate responsive analysis
 
   // 4. Typography scale analysis
   try {
@@ -387,31 +384,8 @@ async function analyze(url: string) {
     }
   } catch (e: any) { process.stderr.write(`  VerticalRhythm err: ${e.message}\n`); }
 
-  // 6. Color harmony analysis
-  try {
-    const colors = elementsData.map(d => d.styles.color).filter(c => c && c !== '#000000' && c !== 'rgb(0, 0, 0)');
-    const bgColors = elementsData.map(d => d.styles.backgroundColor).filter(c => c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)');
-    const allColors = [...new Set([...colors, ...bgColors])].slice(0, 50);
-    if (allColors.length >= 2) {
-      const harmony = ColorHarmonyAnalyzer.analyzeHarmony(allColors, advancedRules.colorHarmony);
-      if (harmony.semanticIssues?.length) {
-        for (const iss of harmony.semanticIssues) {
-          allIssues.push(ElementInspectionFactory.createIssue(
-            'color_semantics_wrong' as any, iss.severity || 'info', 'color',
-            `Color semantics: ${iss.message || iss.type} (role: ${iss.role})`, 'page', 'page', { ...iss }
-          ));
-        }
-      }
-      if (harmony.consistencyIssues?.length) {
-        for (const iss of harmony.consistencyIssues) {
-          allIssues.push(ElementInspectionFactory.createIssue(
-            'color_harmony_broken' as any, iss.severity || 'warning', 'color',
-            `Color harmony: ${iss.message || iss.type} (variance: ${iss.variance})`, 'page', 'page', { ...iss }
-          ));
-        }
-      }
-    }
-  } catch (e: any) { process.stderr.write(`  ColorHarmony err: ${e.message}\n`); }
+  // 6. Color harmony — disabled (needs real computed colors from browser, not CSS text parsing)
+  // CSS text parsing can't resolve CSS variables, inheritance, or cascade correctly
 
   dom.window.close();
 
@@ -465,14 +439,17 @@ async function analyze(url: string) {
   }
 
   // Analyzers used
-  console.log(`\n ANALYZERS USED: 14`);
-  console.log(`  ✓ ElementAnalyzer        ✓ AdvancedElementAnalyzer`);
-  console.log(`  ✓ APCAContrastAnalyzer   ✓ VerticalRhythmAnalyzer`);
-  console.log(`  ✓ TypographyAnalyzer     ✓ ColorHarmonyAnalyzer`);
-  console.log(`  ✓ LayoutAnalyzer         ✓ InteractionAnalyzer`);
-  console.log(`  ✓ ResponsiveAnalyzer     ✓ PerformanceAnalyzer`);
-  console.log(`  ✓ ConsistencyAnalyzer    ✓ ResponsiveChecker`);
-  console.log(`  ✓ PerformanceOptimizer (batch orchestrator)`);
+  console.log(`\n ACTIVE ANALYZERS:`);
+  console.log(`  ✓ ElementAnalyzer          spacing, sizing, typography, accessibility`);
+  console.log(`  ✓ AdvancedElementAnalyzer  typography, interaction, spacing`);
+  console.log(`  ✓ TypographyAnalyzer       type scale consistency`);
+  console.log(`  ✓ VerticalRhythmAnalyzer   spacing rhythm`);
+  console.log(`\n DISABLED (need real browser CSSOM):`);
+  console.log(`  ✗ APCAContrastAnalyzer     needs computed colors`);
+  console.log(`  ✗ ColorHarmonyAnalyzer     needs computed colors`);
+  console.log(`  ✗ ResponsiveChecker        needs real viewport`);
+  console.log(`  ✗ ConsistencyAnalyzer      needs design tokens from actual page`);
+  console.log(`  ✗ PerformanceOptimizer     needs runtime metrics`);
 
   console.log('\n Done.\n');
   return { analyzed, skipped, totalIssues: allIssues.length, score, grade, types: Object.keys(byType).length };
