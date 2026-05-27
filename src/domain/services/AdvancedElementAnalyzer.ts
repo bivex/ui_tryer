@@ -59,9 +59,9 @@ export class AdvancedElementAnalyzer {
     issues.push(...this.analyzeKeyboardNavigation(elementId, selector, computedStyles, rules.accessibility.keyboard));
 
     // Phase 2: Typography and spacing harmony
-    issues.push(...this.analyzeVerticalRhythm(elementId, selector, boxModel, computedStyles, rules.verticalRhythm, context));
+    // issues.push(...this.analyzeVerticalRhythm(elementId, selector, boxModel, computedStyles, rules.verticalRhythm, context));
     issues.push(...this.analyzeTypographyAdvanced(elementId, selector, computedStyles, rules.typography, context));
-    issues.push(...this.analyzeColorHarmony(elementId, selector, computedStyles, rules.colorHarmony));
+    // issues.push(...this.analyzeColorHarmony(elementId, selector, computedStyles, rules.colorHarmony));
 
     // Phase 3: Layout and interaction
     issues.push(...this.analyzeLayoutAdvanced(elementId, selector, boxModel, computedStyles, context, rules.layout));
@@ -70,7 +70,7 @@ export class AdvancedElementAnalyzer {
     // Phase 4: Advanced analysis
     issues.push(...this.analyzeResponsiveAdvanced(elementId, selector, computedStyles, boxModel, context?.viewport, rules.responsive));
     issues.push(...this.analyzePerformanceAdvanced(elementId, selector, computedStyles, boxModel, rules.performance));
-    issues.push(...this.analyzeConsistencyAdvanced(elementId, selector, computedStyles, boxModel, rules.consistency, context?.relations?.nearbyElements));
+    // issues.push(...this.analyzeConsistencyAdvanced(elementId, selector, computedStyles, boxModel, rules.consistency, context?.relations?.nearbyElements));
 
     return {
       elementId,
