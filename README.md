@@ -1,144 +1,143 @@
-# Pixel Police - Design Perfection Enforcer 🚔
+# Pixel Police - Design Perfection Enforcer
 
-**The pixel-perfect police force that catches UI crimes!** 👮‍♂️
+**The pixel-perfect police force that catches UI crimes!**
 
-Chrome extension for automatic validation of web interfaces against design systems. Catches spacing violations, sizing crimes, color offenses, and responsive design infractions.
+A Chrome extension for automatic validation of web interfaces against design systems. Catches spacing violations, sizing crimes, color offenses, and responsive design infractions.
 
-## 🎯 Цель
+## Purpose
 
-Расширение решает ключевые боли UI/UX разработчиков и QA-инженеров при проверке интерфейсов:
+The extension addresses key pain points for UI/UX developers and QA engineers:
 
-- **Время на ручную инспекцию**: автоматическое выявление несоответствий отступам, размерам, цветам
-- **Сложность выявления несоответствий**: встроенные правила дизайн-системы
-- **Отсутствие стандартизации**: системный подход к проверке UI
+- **Manual inspection time**: automatically detects spacing, sizing, and color inconsistencies
+- **Hard-to-spot discrepancies**: built-in design system rules
+- **Lack of standardization**: systematic approach to UI validation
 
-## 🏗 Архитектура
+## Architecture
 
-Проект построен по принципу **чистой архитектуры** с разделением на слои:
+The project follows **Clean Architecture** with clear layer separation:
 
-### Domain (Домен)
-Чистая бизнес-логика, независимая от Chrome API:
-- `ElementInspector` - анализ отдельных элементов
-- `ResponsiveChecker` - проверка адаптивности
-- `ElementComparator` - сравнение элементов
-- `DesignRules` - правила дизайн-системы
+### Domain
+Pure business logic, independent of Chrome APIs:
+- `ElementInspector` - individual element analysis
+- `ResponsiveChecker` - responsiveness validation
+- `ElementComparator` - element comparison
+- `DesignRules` - design system rules
 
-### Application (Приложение)
-Use cases - оркестрация домена и инфраструктуры:
-- `InspectElementUseCase` - инспекция элемента
-- `CheckResponsiveUseCase` - проверка responsive
-- `CompareElementsUseCase` - сравнение элементов
-- `GenerateReportUseCase` - генерация отчетов
+### Application
+Use cases orchestrating domain and infrastructure:
+- `InspectElementUseCase` - element inspection
+- `CheckResponsiveUseCase` - responsive checks
+- `CompareElementsUseCase` - element comparison
+- `GenerateReportUseCase` - report generation
 
-### Infrastructure (Инфраструктура)
-Адаптеры для внешних зависимостей:
-- `TabAdapter` - работа с вкладками Chrome
-- `StorageAdapter` - хранение настроек
-- `ScriptingAdapter` - выполнение скриптов
-- `ElementInspector` - DOM манипуляции
+### Infrastructure
+Adapters for external dependencies:
+- `TabAdapter` - Chrome tab operations
+- `StorageAdapter` - settings persistence
+- `ScriptingAdapter` - script execution
+- `ElementInspector` - DOM manipulation
 
-### Presentation (Презентация)
-UI компоненты:
-- `Popup` - главное окно расширения
-- `Overlay` - визуальные накладки на элементы
-- `Options` - страница настроек
+### Presentation
+UI components:
+- `Popup` - main extension window
+- `Overlay` - visual element overlays
+- `Options` - settings page
 
-## 🔒 Безопасность и Permissions
+## Security and Permissions
 
-### Минимальный набор разрешений:
+### Minimal permission set:
 ```json
 {
   "permissions": [
-    "activeTab",     // Доступ к текущей вкладке
-    "storage",       // Сохранение настроек
-    "scripting"      // Выполнение скриптов (Manifest V3)
+    "activeTab",
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
-    "<all_urls>"     // Чтение DOM (минимально необходимо)
+    "<all_urls>"
   ]
 }
 ```
 
-### Принципы безопасности:
-- ✅ **Наименьшие привилегии**: только необходимые permissions
-- ✅ **Read-only режим**: расширение не изменяет контент страниц
-- ✅ **Изоляция**: content scripts работают в изолированном мире
-- ✅ **Валидация данных**: все входные данные проверяются
-- ✅ **CSP compliance**: код соответствует Content Security Policy
+### Security principles:
+- **Least privilege**: only necessary permissions
+- **Read-only mode**: the extension does not modify page content
+- **Isolation**: content scripts run in an isolated world
+- **Data validation**: all inputs are validated
+- **CSP compliance**: code follows Content Security Policy
 
-## 📋 Функциональные требования
+## Features
 
-### 1. Инспекция элементов
-- Наведение курсора на элемент → показ overlay с box-model
-- Отображение числовых значений margin/padding/size
-- Предупреждения о несоответствиях дизайн-системе
+### 1. Element Inspection
+- Hover over an element to see a box-model overlay
+- Display numeric margin/padding/size values
+- Warnings for design system violations
 
-### 2. Правила дизайн-системы
-- Настраиваемая сетка отступов (4px/8px/16px...)
-- Минимальные размеры кликабельных элементов (44px)
-- Палитра цветов
-- Брейкпоинты responsive
+### 2. Design System Rules
+- Configurable spacing grid (4px/8px/16px...)
+- Minimum clickable element sizes (44px)
+- Color palette validation
+- Responsive breakpoints
 
-### 3. Responsive проверки
-- Симуляция разных размеров экрана
-- Автоматическое выявление проблем overflow
-- Проверка доступности на мобильных
+### 3. Responsive Checks
+- Screen size simulation
+- Automatic overflow detection
+- Mobile accessibility validation
 
-### 4. Сравнение элементов
-- Консистентность отступов между кнопками
-- Одинаковые размеры однотипных компонентов
-- Групповой анализ
+### 4. Element Comparison
+- Spacing consistency between buttons
+- Uniform sizes for similar components
+- Group analysis
 
-### 5. Отчеты
-- JSON/HTML/Markdown экспорт
-- Скриншоты проблемных зон
-- Интеграция с Jira/Linear
+### 5. Reports
+- JSON/HTML/Markdown export
+- Screenshots of problem areas
+- Jira/Linear integration
 
-## 🚀 Установка и разработка
+## Installation and Development
 
 ```bash
-# Клонирование
+# Clone
 git clone <repository>
 cd ui-inspector
 
-# Установка зависимостей
+# Install dependencies
 npm install
 
-# Сборка
+# Build
 npm run build
 
-# Загрузка в Chrome
-# 1. Открыть chrome://extensions/
-# 2. Включить "Developer mode"
-# 3. "Load unpacked" → выбрать dist/
+# Load in Chrome
+# 1. Open chrome://extensions/
+# 2. Enable "Developer mode"
+# 3. "Load unpacked" -> select dist/
 ```
 
-## 📊 Пользовательские сценарии
+## User Scenarios
 
-### Сценарий 1: Быстрая инспекция
-1. Пользователь открывает страницу
-2. Кликает иконку расширения
-3. Включает "Inspect mode"
-4. Наводит курсор на элемент
-5. Видит overlay + предупреждения
+### Scenario 1: Quick Inspection
+1. Open a page
+2. Click the extension icon
+3. Enable "Inspect mode"
+4. Hover over an element
+5. See overlay + warnings
 
-### Сценарий 2: Responsive проверка
-1. Выбор breakpoint "Mobile 375px"
-2. Расширение симулирует размер
-3. Подсвечивает проблемы
-4. Генерирует отчет
+### Scenario 2: Responsive Check
+1. Select breakpoint "Mobile 375px"
+2. Extension simulates the size
+3. Highlights problems
+4. Generates a report
 
-### Сценарий 3: Командная работа
-1. QA находит проблемы
-2. Генерирует отчет с багом
-3. Копирует описание для Jira
-4. Дизайнер/разработчик получает четкое ТЗ
+### Scenario 3: Team Workflow
+1. QA finds issues
+2. Generates a bug report
+3. Copies description for Jira
+4. Designer/developer gets clear specs
 
-## 🛠 Технические решения
+## Technical Details
 
 ### Message Passing
 ```typescript
-// Явные контракты сообщений
 interface Message<T> {
   type: MessageType;
   payload: T;
@@ -148,48 +147,53 @@ interface Message<T> {
 ```
 
 ### Service Worker (Manifest V3)
-- Background скрипт как service worker
-- Обработка пробуждения/засыпания
-- State хранится в chrome.storage
+- Background script as a service worker
+- Wake/sleep handling
+- State stored in chrome.storage
 
 ### Content Scripts
-- Минимальный размер (только DOM операции)
-- Бизнес-логика в отдельных слоях
-- Read-only доступ к странице
+- Minimal footprint (DOM operations only)
+- Business logic in separate layers
+- Read-only page access
 
-## 🎨 UI/UX принципы
+## Keyboard Shortcuts
 
-- **Минималистичный интерфейс**: toggle on/off, режимы, горячие клавиши
-- **Производительность**: не замедляет страницу
-- **Доступность**: работает на всех сайтах
-- **Локализация**: поддержка i18n
+| Action | Windows/Linux | macOS |
+|--------|--------------|-------|
+| Toggle inspect mode | `Ctrl+Shift+I` | `Cmd+Shift+I` |
+| Generate report | `Ctrl+Shift+R` | `Cmd+Shift+R` |
 
-## 🔄 Развитие
+## UI/UX Principles
 
-### Roadmap
-- [ ] Интеграция с Figma
-- [ ] Кастомные правила дизайн-систем
-- [ ] Автоматизированное тестирование
+- **Minimalist interface**: toggle on/off, modes, hotkeys
+- **Performance**: does not slow down the page
+- **Accessibility**: works on all websites
+- **Localization**: i18n support
+
+## Roadmap
+
+- [ ] Figma integration
+- [ ] Custom design system rules
+- [ ] Automated testing
 - [ ] CI/CD pipeline
 - [ ] Performance monitoring
 
-### Технический долг
-- [ ] Полная типизация
-- [ ] Unit/integration тесты
-- [ ] E2E тесты
+## Tech Debt
+
+- [ ] Full type coverage
+- [ ] Unit/integration tests
+- [ ] E2E tests
 - [ ] Documentation
 - [ ] Performance optimization
 
-## 📄 Лицензия
+## License
 
-MIT License - см. LICENSE файл.
+MIT License - see [LICENSE](LICENSE) file.
 
-## 🤝 Контрибьютинг
+## Contributing
 
-1. Fork проект
-2. Создать feature branch
-3. Commit изменения
-4. Push и создать PR
-5. Code review и merge
-
-Подробные инструкции в CONTRIBUTING.md
+1. Fork the project
+2. Create a feature branch
+3. Commit your changes
+4. Push and open a PR
+5. Code review and merge
