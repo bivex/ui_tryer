@@ -1059,8 +1059,8 @@ export class AdvancedElementAnalyzer {
     for (const issue of analysis.issues) {
       // Filter out redundant responsive issues for high-level elements
       if (issue.type === 'breakpoint_inconsistency') {
-        const tagName = selector.split(/[.#\\[]/)[0].toLowerCase();
-        if (['html', 'body', 'row'].includes(tagName)) continue;
+        const selectorLower = selector.toLowerCase();
+        if (selectorLower.includes('html') || selectorLower.includes('body') || selectorLower.includes('.row') || selectorLower.includes('.container')) continue;
       }
 
       issues.push({
