@@ -111,7 +111,11 @@ function parsePx(v: string | undefined): number {
   if (v.endsWith('rem')) return parseFloat(v) * 16;
   if (v.endsWith('em')) return parseFloat(v) * 16;
   if (v.endsWith('pt')) return parseFloat(v) * (4 / 3);
-  return parseFloat(v) || 0;
+  if (v.endsWith('px')) return parseFloat(v);
+  const n = parseFloat(v);
+  // Unitless values < 1 are likely CSS keywords or parsing artifacts
+  if (n > 0 && n < 1 && !v.includes('px')) return 0;
+  return n || 0;
 }
 
 function expandSides(v: string | undefined): { top: number; right: number; bottom: number; left: number } {
@@ -162,12 +166,25 @@ function matchesSelector(sel: string, el: Element): boolean {
 function resolveStyles(el: Element, rules: CSSRule[]): Record<string, string> {
   const m: Record<string, string> = {};
   for (const r of rules) {
-    if (matchesSelector(r.selector, el)) Object.assign(m, r.props);
+    if (matchesSelector(r.selector, el)) {
+      for (const [prop, val] of Object.entries(r.props)) {
+        // Convert kebab-case to camelCase for DOM compatibility
+        const camel = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        m[camel] = val;
+      }
+    }
   }
   const attr = el.getAttribute('style');
   if (attr) attr.split(';').forEach(d => {
     const c = d.indexOf(':');
-    if (c > -1) { const p = d.substring(0, c).trim(); const v = d.substring(c + 1).trim(); if (p && v) m[p] = v; }
+    if (c > -1) {
+      const p = d.substring(0, c).trim();
+      const v = d.substring(c + 1).trim();
+      if (p && v) {
+        const camel = p.replace(/-([a-z])/g, (_, ch) => ch.toUpperCase());
+        m[camel] = v;
+      }
+    }
   });
   return m;
 }
@@ -241,7 +258,11 @@ const advancedRules = {
   layout: { alignment: { tolerance: 2, grid: 8 }, zIndex: { maxRecommended: 10, scale: [0, 1, 10, 100, 1000] }, visualHierarchy: { minLevels: 3, weightFactors: { size: 0.4, color: 0.3, spacing: 0.3 } }, grid: { columns: 12, gutter: 16 } },
   accessibility: { aria: { required: [], roles: {} }, keyboard: { focusable: true, tabIndex: true }, semantics: { requiredHeadings: true, landmarkRegions: true }, motion: { maxDuration: 5000, reducedMotion: true } },
   interaction: { requiredStates: ['hover', 'focus', 'active'], stateVisibility: { minContrast: 3 }, loading: { maxSkeletonDelay: 3000, requiredForAsync: true }, touch: { minTargetSize: 44 } },
-  consistency: { patterns: {}, tokens: {}, similarity: { threshold: 0.8, maxDistance: 4 } },
+  consistency: {
+    patterns: { button: { selectors: ['.btn', 'button'], requiredProps: ['padding', 'fontSize'] } },
+    tokens: { colorTokens: ['#007bff', '#6c757d', '#28a745', '#dc3545', '#ffc107', '#17a2b8'], spacingTokens: [4, 8, 12, 16, 24, 32, 48], fontSizeTokens: [12, 14, 16, 18, 20, 24, 32, 48] },
+    similarity: { threshold: 0.8, maxDistance: 4 },
+  },
   responsive: { breakpoints: [{ name: 'xs', width: 0 }, { name: 'sm', width: 576 }, { name: 'md', width: 768 }, { name: 'lg', width: 992 }, { name: 'xl', width: 1200 }, { name: 'xxl', width: 1400 }], mobileFirst: true, overflow: { allowHorizontal: false, maxScrollRatio: 0.1 }, containers: { maxWidth: 1200 } },
   performance: { layoutShift: { maxCLS: 0.1 }, animation: { maxDuration: 1000, preferTransform: true }, resources: { lazyBelowFold: true, maxImageSize: 200, optimizeFormats: ['webp', 'avif'] } },
 };
@@ -299,34 +320,49 @@ async function analyze(url: string) {
     try {
       const advInsp = AdvancedElementAnalyzer.analyzeElement(s, s, box, styles, advancedRules as any);
       allIssues.push(...advInsp.issues);
-    } catch (e: any) { if (analyzed <= 3) process.stderr.write(`  AdvancedAnalyzer err: ${e.message}\n`); }
+    } catch {}
 
     elementsData.push({ selector: s, box, styles, merged });
   }
 
-  // 3. Cross-element: ResponsiveChecker
+  // 3. Cross-element: ResponsiveChecker (limit to avoid stack overflow)
   try {
     const viewport = { width: 1920, height: 1080 };
-    const inspections = elementsData.map(d =>
-      ElementAnalyzer.analyzeElement(d.selector, d.selector, d.box, d.styles, basicRules)
-    );
-    const respIssues = ResponsiveChecker.checkResponsiveBehavior(inspections, viewport, basicRules);
-    process.stderr.write(`  ResponsiveChecker: ${respIssues.length} issues\n`);
-    allIssues.push(...respIssues);
+    const subset = elementsData.filter(d => {
+      const w = parsePx(d.merged.width);
+      const h = parsePx(d.merged.height);
+      return w >= 100 && h >= 20; // Only check sizable elements
+    }).slice(0, 100);
+    if (subset.length >= 2) {
+      const inspections = subset.map(d =>
+        ElementAnalyzer.analyzeElement(d.selector, d.selector, d.box, d.styles, basicRules)
+      );
+      const respIssues = ResponsiveChecker.checkResponsiveBehavior(inspections, viewport, basicRules);
+      allIssues.push(...respIssues.slice(0, 200));
+    }
   } catch (e: any) { process.stderr.write(`  ResponsiveChecker err: ${e.message}\n`); }
 
   // 4. Typography scale analysis
   try {
     const fontSizes = elementsData.map(d => parseFloat(d.styles.fontSize)).filter(n => n > 0 && !isNaN(n));
-    process.stderr.write(`  Typography: ${fontSizes.length} unique font sizes\n`);
-    if (fontSizes.length) {
-      const typoAnalysis = TypographyAnalyzer.analyzeTypeScale(fontSizes);
-      process.stderr.write(`  Typography result: ${JSON.stringify(Object.keys(typoAnalysis))}\n`);
-      if (typoAnalysis.issues) {
-        for (const iss of typoAnalysis.issues) {
+    const uniqueFontSizes = [...new Set(fontSizes)];
+    if (uniqueFontSizes.length >= 2) {
+      const typoAnalysis = TypographyAnalyzer.analyzeTypeScale(uniqueFontSizes, advancedRules.typography);
+      if (typoAnalysis.violations?.length) {
+        for (const v of typoAnalysis.violations) {
           allIssues.push(ElementInspectionFactory.createIssue(
-            iss.type as any || 'type_scale_inconsistent', 'warning', 'typography',
-            iss.message || `Type scale issue: ${iss.type}`, 'page', 'page', iss
+            'type_scale_inconsistent' as any, v.deviation > 3 ? 'warning' : 'info', 'typography',
+            `Font size ${v.actualSize?.toFixed(1)}px doesn't match ${typoAnalysis.detectedScale?.name || ''} scale (expected ~${v.expectedSize?.toFixed(1)}px, deviation ${v.deviation?.toFixed(1)}px at level ${v.level})`,
+            'page', 'page', { ...v, detectedScale: typoAnalysis.detectedScale }
+          ));
+        }
+      }
+      if (typoAnalysis.suggestions?.length) {
+        for (const s of typoAnalysis.suggestions.slice(0, 5)) {
+          allIssues.push(ElementInspectionFactory.createIssue(
+            'type_scale_inconsistent' as any, 'info', 'typography',
+            `Typography suggestion: ${s.description}`,
+            'page', 'page', { ...s }
           ));
         }
       }
@@ -336,15 +372,15 @@ async function analyze(url: string) {
   // 5. Vertical rhythm analysis
   try {
     const spacings = elementsData.flatMap(d => [d.box.margin.top, d.box.margin.bottom, d.box.padding.top, d.box.padding.bottom]).filter(v => v > 0);
-    process.stderr.write(`  VerticalRhythm: ${spacings.length} spacing values\n`);
-    if (spacings.length > 2) {
-      const rhythmResult = VerticalRhythmAnalyzer.analyzeRhythm(spacings, advancedRules.verticalRhythm);
-      process.stderr.write(`  VerticalRhythm result: ${JSON.stringify(Object.keys(rhythmResult))}\n`);
-      if (rhythmResult.violations) {
-        for (const v of rhythmResult.violations) {
+    const uniqueSpacings = [...new Set(spacings.map(s => Math.round(s * 10) / 10))];
+    if (uniqueSpacings.length > 2) {
+      const rhythmResult = VerticalRhythmAnalyzer.analyzeRhythm(uniqueSpacings, advancedRules.verticalRhythm);
+      if (rhythmResult.violations?.length) {
+        for (const v of rhythmResult.violations.slice(0, 50)) {
           allIssues.push(ElementInspectionFactory.createIssue(
-            'vertical_rhythm_broken', v.severity === 'major' ? 'error' : 'warning', 'spacing',
-            `Vertical rhythm: ${v.message || v.type}`, 'page', 'page', { ...v }
+            'vertical_rhythm_broken' as any, v.severity === 'major' ? 'error' : v.severity === 'moderate' ? 'warning' : 'info', 'spacing',
+            `Spacing ${v.value?.toFixed(1)}px off rhythm (expected ${v.expected?.toFixed(1)}px, ratio ${v.ratio?.toFixed(2)} vs closest ${v.closestRatio})`,
+            'page', 'page', { ...v }
           ));
         }
       }
@@ -356,22 +392,21 @@ async function analyze(url: string) {
     const colors = elementsData.map(d => d.styles.color).filter(c => c && c !== '#000000' && c !== 'rgb(0, 0, 0)');
     const bgColors = elementsData.map(d => d.styles.backgroundColor).filter(c => c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)');
     const allColors = [...new Set([...colors, ...bgColors])].slice(0, 50);
-    process.stderr.write(`  ColorHarmony: ${allColors.length} unique colors\n`);
     if (allColors.length >= 2) {
       const harmony = ColorHarmonyAnalyzer.analyzeHarmony(allColors, advancedRules.colorHarmony);
-      process.stderr.write(`  ColorHarmony result: ${JSON.stringify(Object.keys(harmony))}\n`);
-      if (harmony.semanticIssues) {
+      if (harmony.semanticIssues?.length) {
         for (const iss of harmony.semanticIssues) {
           allIssues.push(ElementInspectionFactory.createIssue(
-            iss.type === 'missing_semantic_color' ? 'color_semantics_wrong' as any : 'color_semantics_wrong' as any,
-            'info', 'color', `Color semantics: ${iss.message || iss.type}`, 'page', 'page', { ...iss }
+            'color_semantics_wrong' as any, iss.severity || 'info', 'color',
+            `Color semantics: ${iss.message || iss.type} (role: ${iss.role})`, 'page', 'page', { ...iss }
           ));
         }
       }
-      if (harmony.consistencyIssues) {
+      if (harmony.consistencyIssues?.length) {
         for (const iss of harmony.consistencyIssues) {
           allIssues.push(ElementInspectionFactory.createIssue(
-            'color_harmony_broken', 'warning', 'color', `Color harmony: ${iss.message || iss.type}`, 'page', 'page', { ...iss }
+            'color_harmony_broken' as any, iss.severity || 'warning', 'color',
+            `Color harmony: ${iss.message || iss.type} (variance: ${iss.variance})`, 'page', 'page', { ...iss }
           ));
         }
       }
