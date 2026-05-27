@@ -105,6 +105,9 @@ export interface ElementContext {
     isVisible: boolean;
     isInViewport: boolean;
     effectiveZIndex: number;
+    hover?: any;
+    focus?: any;
+    active?: any;
   };
 
   /** Element relations for consistency analysis */

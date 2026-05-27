@@ -113,7 +113,9 @@ export class InteractionAnalyzer {
     }
 
     // Check for transition/animation
-    const hasTransition = styles.transition || styles.animation;
+    const hasTransition = styles.transition || styles.animation || 
+                         (styles.transitionDuration && styles.transitionDuration !== '0s') ||
+                         (styles.transitionProperty && styles.transitionProperty !== 'none');
     if (!hasTransition && missingStates.length === 0) {
       issues.push({
         type: 'transition_inadequate',
@@ -295,7 +297,7 @@ export class InteractionAnalyzer {
     let perceptibleDifference = 0;
 
     // Compare key visual properties
-    const visualProperties = ['color', 'backgroundColor', 'borderColor', 'boxShadow', 'transform', 'opacity'];
+    const visualProperties = ['color', 'backgroundColor', 'borderColor', 'boxShadow', 'transform', 'opacity', 'outline', 'outlineColor', 'outlineWidth'];
 
     for (const prop of visualProperties) {
       const defaultValue = defaultStyles[prop];
@@ -337,7 +339,11 @@ export class InteractionAnalyzer {
         return Math.abs(opacity1 - opacity2);
 
       case 'boxShadow':
-        return value1 !== 'none' && value2 === 'none' ? 0 : 0.2;
+        return value1 !== value2 ? 0.4 : 0;
+
+      case 'outline':
+      case 'outlineWidth':
+        return value1 !== value2 ? 0.5 : 0;
 
       case 'transform':
         return value1 !== value2 ? 0.4 : 0;

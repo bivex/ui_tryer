@@ -263,7 +263,9 @@ export class AdvancedElementAnalyzer {
 
     if (this.isInteractiveElement(selector, context)) {
       // Check for focus indicator
-      const hasFocusIndicator = styles.outline || styles.boxShadow ||
+      const focusStyles = (context?.computedStates as any)?.focus || {};
+      const hasFocusIndicator = focusStyles.outline || focusStyles.boxShadow || 
+                               styles.outline || styles.boxShadow ||
                                (styles.border && styles.border !== 'none');
 
       if (!hasFocusIndicator) {

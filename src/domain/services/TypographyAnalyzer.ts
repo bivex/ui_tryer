@@ -193,14 +193,15 @@ export class TypographyAnalyzer {
     const config = rules || { maxOrphanLines: 2, maxWidowLines: 1, minLastLineRatio: 0.3 };
 
     // Split into paragraphs
-    const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim().length > 50);
+    const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim().length > 100);
 
     for (const paragraph of paragraphs) {
-      const words = paragraph.trim().split(/\s+/);
-      if (words.length < 15) continue; // Skip very short paragraphs
+      const text = paragraph.trim();
+      const words = text.split(/\s+/);
+      if (words.length < 20) continue; // Skip very short paragraphs
 
       // Estimate lines (simplified - in reality would need actual rendering)
-      const estimatedLines = Math.ceil(words.length / 10); // More conservative estimate
+      const estimatedLines = Math.ceil(text.length / 70); // Estimate based on chars per line
 
       if (estimatedLines > 1) {
         // Check last line ratio

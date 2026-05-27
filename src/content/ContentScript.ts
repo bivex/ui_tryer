@@ -257,7 +257,7 @@ class ContentScript {
     const computedStyles: Record<string, string> = {};
     for (let i = 0; i < style.length; i++) {
       const prop = style[i];
-      computedStyles[prop] = style.getPropertyValue(prop);
+      computedStyles[this.kebabToCamel(prop)] = style.getPropertyValue(prop);
     }
 
     return AdvancedElementAnalyzer.analyzeElement(
@@ -320,9 +320,13 @@ class ContentScript {
     const obj: any = {};
     for (let i = 0; i < rule.style.length; i++) {
       const prop = rule.style[i];
-      obj[prop] = rule.style.getPropertyValue(prop);
+      obj[this.kebabToCamel(prop)] = rule.style.getPropertyValue(prop);
     }
     return obj;
+  }
+
+  private kebabToCamel(str: string): string {
+    return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
   }
 
   private extractPrimaryColor(): string | undefined {
