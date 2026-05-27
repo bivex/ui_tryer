@@ -1057,6 +1057,12 @@ export class AdvancedElementAnalyzer {
 
     // Convert analysis results to issues
     for (const issue of analysis.issues) {
+      // Filter out redundant responsive issues for high-level elements
+      if (issue.type === 'breakpoint_inconsistency') {
+        const tagName = selector.split(/[.#\\[]/)[0].toLowerCase();
+        if (['html', 'body', 'row'].includes(tagName)) continue;
+      }
+
       issues.push({
         id: `${elementId}_responsive_${issue.type}_${Date.now()}`,
         type: issue.type as IssueType,
