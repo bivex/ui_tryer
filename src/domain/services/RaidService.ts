@@ -25,12 +25,12 @@ export class RaidService {
       transition: 'all 0.3s ease',
       fontFamily: 'system-ui, -apple-system, sans-serif'
     });
-    overlay.innerHTML = '🚨 <span id="raid-status">Investigating UI Crimes...</span>';
+    overlay.innerHTML = '🚨 <span id="pixel-police-raid-status">Investigating UI Crimes...</span>';
     return overlay;
   }
 
   public updateRaidOverlay(overlay: HTMLElement, crimeCount: number, elementCount: number, onClose: () => void): void {
-    const status = overlay.querySelector('#raid-status');
+    const status = overlay.querySelector('#pixel-police-raid-status');
     if (status) {
       if (crimeCount > 0) {
         status.textContent = `CRIME WAVE DETECTED: ${crimeCount} violations in ${elementCount} elements!`;

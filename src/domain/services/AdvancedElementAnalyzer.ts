@@ -459,12 +459,12 @@ export class AdvancedElementAnalyzer {
 
     // Convert analysis results to issues
     for (const issue of analysis.issues) {
-      // Filter out false positives for small/UI elements
-      if (issue.type === 'line_length') {
-        // Skip "Line too short" for headings, buttons, lead text, and short text
+      if (issue.type === 'line_length' || issue.type === 'line_height') {
+        // Skip "Line too short" and line-height for headings, buttons, lead text, and short text
         if (issue.message.includes('too short') && (isHeading || isLeafText || containerWidth < 200 || selector.includes('.lead'))) continue;
+        if (issue.type === 'line_height' && selector.includes('.lead')) continue;
         // Skip "Line too long" for high-level containers that aren't text blocks
-        if (issue.message.includes('too long') && !isBlock && !isHeading) continue;
+        if (issue.type === 'line_length' && issue.message.includes('too long') && !isBlock && !isHeading) continue;
       }
 
       if (issue.type === 'widow' || issue.type === 'orphan') {
