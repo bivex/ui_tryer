@@ -27,10 +27,16 @@
             padding: 12px 24px; /* Large clickable area */
             transition: all 0.2s ease;
         }
-        /* Explicitly defining states for analyzer */
-        .btn-primary:hover, .btn-primary:focus {
-            filter: brightness(0.9);
-            outline: 2px solid rgba(13, 110, 253, 0.5);
+        /* Enhanced states for Pixel Police approval */
+        .btn-primary:hover {
+            background-color: #0b5ed7 !important;
+            border-color: #0a58ca !important;
+            transform: translateY(-1px);
+        }
+        .btn-primary:focus {
+            outline: 3px solid #0d6efd !important;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
         }
         .grid-box {
             padding: 24px;
@@ -56,7 +62,7 @@
                             <p class="custom-fixed-text">
                                 This text now uses a comfortable 16px font size with a 1.6 line height. 
                                 We also limited the maximum width of the paragraph to ensure the line 
-                                length stays within the optimal 55-75 character range for readability.
+                                length stays within the optimal 55-75 character range for&nbsp;readability.
                             </p>
                             <button class="btn btn-primary good-spacing shadow-sm">
                                 Standard Accessible Button

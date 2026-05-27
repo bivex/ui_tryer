@@ -285,8 +285,44 @@ class ContentScript {
       viewport: { width: window.innerWidth, height: window.innerHeight },
       page: { primaryColor: this.extractPrimaryColor(), fontFamily: this.extractPrimaryFontFamily() },
       interaction: { isHoverable: htmlElement.matches(':hover'), isFocusable: htmlElement.matches(':focus') },
-      textContent: htmlElement.innerText || htmlElement.textContent || ''
+      textContent: htmlElement.innerText || htmlElement.textContent || '',
+      computedStates: this.detectPseudoStates(element)
     };
+  }
+
+  private detectPseudoStates(element: Element): any {
+    const states: any = { hover: {}, focus: {}, active: {} };
+    const selector = this.createSelectorForElement(element);
+    
+    try {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          const rules = Array.from(sheet.cssRules || []);
+          for (const rule of rules) {
+            if (rule instanceof CSSStyleRule) {
+              const ruleSelector = rule.selectorText.toLowerCase();
+              if (ruleSelector.includes(':hover') && element.matches(rule.selectorText.split(':hover')[0])) {
+                states.hover = { ...states.hover, ...this.ruleToStyleObject(rule) };
+              }
+              if (ruleSelector.includes(':focus') && element.matches(rule.selectorText.split(':focus')[0])) {
+                states.focus = { ...states.focus, ...this.ruleToStyleObject(rule) };
+              }
+            }
+          }
+        } catch (e) { /* ignore cross-origin errors */ }
+      }
+    } catch (e) { /* ignore */ }
+    
+    return states;
+  }
+
+  private ruleToStyleObject(rule: CSSStyleRule): any {
+    const obj: any = {};
+    for (let i = 0; i < rule.style.length; i++) {
+      const prop = rule.style[i];
+      obj[prop] = rule.style.getPropertyValue(prop);
+    }
+    return obj;
   }
 
   private extractPrimaryColor(): string | undefined {

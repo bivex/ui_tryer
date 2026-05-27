@@ -834,9 +834,17 @@ export class AdvancedElementAnalyzer {
   }
 
   private static getLuminance(color: string): number {
-    // Simplified luminance calculation
-    // Real implementation would parse RGB/HSL properly
-    return 0.5; // placeholder
+    if (!color || color === 'transparent') return 1;
+    
+    const rgb = color.match(/\d+/g);
+    if (!rgb || rgb.length < 3) return 0.5;
+    
+    const [r, g, b] = rgb.map(c => {
+      let v = parseInt(c) / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   }
 
   private static isHeading(selector: string): boolean {
