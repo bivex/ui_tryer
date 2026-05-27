@@ -129,11 +129,26 @@ export class APCAContrastAnalyzer {
     }
 
     // Handle rgb/rgba colors
-    const rgbMatch = cleanColor.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*[\d.]+\s*)?\)/);
+    const rgbMatch = cleanColor.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/);
     if (rgbMatch) {
+      const a = rgbMatch[4] !== undefined ? parseFloat(rgbMatch[4]) : 1;
+      if (a === 0) {
+        return { r: 1, g: 1, b: 1 }; // Assume white for fully transparent
+      }
+
       const r = parseInt(rgbMatch[1]) / 255;
       const g = parseInt(rgbMatch[2]) / 255;
       const b = parseInt(rgbMatch[3]) / 255;
+
+      // Blend with white if semi-transparent
+      if (a < 1) {
+        return {
+          r: r * a + (1 - a),
+          g: g * a + (1 - a),
+          b: b * a + (1 - a)
+        };
+      }
+
       return { r, g, b };
     }
 

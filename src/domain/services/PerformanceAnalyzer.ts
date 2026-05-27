@@ -138,29 +138,6 @@ export class PerformanceAnalyzer {
       }
     }
 
-    // Check font loading
-    if (styles.fontFamily && styles.fontFamily !== 'inherit') {
-      const hasFontDisplay = styles.fontDisplay === 'swap' || styles.fontDisplay === 'optional';
-
-      if (!hasFontDisplay) {
-        issues.push({
-          type: 'font_loading',
-          severity: 'info',
-          message: 'Custom font without font-display may cause layout shift',
-          elementId,
-          selector,
-          suggestedFix: 'Add font-display: swap to @font-face or use system fonts',
-          codeExample: `@font-face {\n  font-family: 'CustomFont';\n  src: url('font.woff2');\n  font-display: swap;\n}`,
-          learnMoreUrl: 'https://web.dev/font-display/',
-          context: {
-            fontFamily: styles.fontFamily,
-            hasFontDisplay,
-            recommended: config.fontLoadingStrategy
-          },
-          impact: 'low'
-        });
-      }
-    }
 
     return issues;
   }

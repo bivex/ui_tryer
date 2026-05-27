@@ -53,10 +53,11 @@ export class AdvancedElementAnalyzer {
   ): ElementInspection {
     const issues: Issue[] = [];
     const hasText = !!(context?.textContent && context.textContent.trim().length > 0);
+    const isContainer = /container|row|col-|card|body|html/i.test(selector);
     const isInteractive = this.isInteractiveElement(selector, context);
 
     // Phase 1: Critical accessibility and contrast
-    if (hasText) {
+    if (hasText && !isContainer) {
       issues.push(...this.analyzeAPCAContrast(elementId, selector, computedStyles, rules.apcaContrast));
     }
     issues.push(...this.analyzeAriaCompliance(elementId, selector, computedStyles, rules.accessibility.aria));
@@ -460,8 +461,8 @@ export class AdvancedElementAnalyzer {
     for (const issue of analysis.issues) {
       // Filter out false positives for small/UI elements
       if (issue.type === 'line_length') {
-        // Skip "Line too short" for headings, buttons, and short text
-        if (issue.message.includes('too short') && (isHeading || isLeafText || containerWidth < 200)) continue;
+        // Skip "Line too short" for headings, buttons, lead text, and short text
+        if (issue.message.includes('too short') && (isHeading || isLeafText || containerWidth < 200 || selector.includes('.lead'))) continue;
         // Skip "Line too long" for high-level containers that aren't text blocks
         if (issue.message.includes('too long') && !isBlock && !isHeading) continue;
       }
@@ -823,10 +824,13 @@ export class AdvancedElementAnalyzer {
 
   // Helper methods
   private static calculateAPCAScore(foreground: string, background: string): number {
-    // Simplified APCA calculation - in real implementation would use proper color math
-    // This is a placeholder for the actual APCA algorithm
+    let bg = background;
+    if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)') {
+      bg = 'rgb(255, 255, 255)'; // Assume white background if transparent
+    }
+
     const fgLum = this.getLuminance(foreground);
-    const bgLum = this.getLuminance(background);
+    const bgLum = this.getLuminance(bg);
 
     if (bgLum > fgLum) {
       return (bgLum ** 0.56 - fgLum ** 0.57) * 1.14 * 100;
@@ -836,17 +840,31 @@ export class AdvancedElementAnalyzer {
   }
 
   private static getLuminance(color: string): number {
-    if (!color || color === 'transparent') return 1;
-    
-    const rgb = color.match(/\d+/g);
-    if (!rgb || rgb.length < 3) return 0.5;
-    
-    const [r, g, b] = rgb.map(c => {
-      let v = parseInt(c) / 255;
+    if (!color) return 1;
+    const cleanColor = color.trim().toLowerCase();
+    if (cleanColor === 'transparent' || cleanColor === 'rgba(0, 0, 0, 0)') return 1;
+
+    const rgb = cleanColor.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/);
+    if (!rgb || rgb.length < 3) return 1;
+
+    const a = rgb[4] !== undefined ? parseFloat(rgb[4]) : 1;
+    if (a === 0) return 1; // Assume white
+
+    let r = parseInt(rgb[1]) / 255;
+    let g = parseInt(rgb[2]) / 255;
+    let b = parseInt(rgb[3]) / 255;
+
+    if (a < 1) {
+      r = r * a + (1 - a);
+      g = g * a + (1 - a);
+      b = b * a + (1 - a);
+    }
+
+    const [rl, gl, bl] = [r, g, b].map(v => {
       return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
     });
-    
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+    return 0.2126 * rl + 0.7152 * gl + 0.0722 * bl;
   }
 
   private static isHeading(selector: string): boolean {

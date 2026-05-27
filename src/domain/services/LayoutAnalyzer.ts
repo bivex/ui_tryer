@@ -186,6 +186,10 @@ export class LayoutAnalyzer {
     const issues: LayoutIssue[] = [];
     const config = rules || { scale: 10, maxRecommended: 100, negativeAllowed: false };
 
+    if (zIndex === 'auto' || zIndex === undefined) {
+      return { zIndex: undefined, issues: [], layer: 'default' };
+    }
+
     if (zIndex !== undefined) {
       const zIndexValue = typeof zIndex === 'string' ? parseInt(zIndex) : zIndex;
 
@@ -201,17 +205,6 @@ export class LayoutAnalyzer {
         return { zIndex: zIndexValue, issues, layer: 'unknown' };
       }
 
-      // Check for extremely high z-index
-      if (zIndexValue > config.maxRecommended) {
-        issues.push({
-          type: 'z_index_conflict',
-          severity: 'warning',
-          message: `Very high z-index (${zIndexValue}) may cause stacking issues`,
-          elementId,
-          suggestedFix: `Consider using scale: ${Math.ceil(zIndexValue / config.scale) * config.scale}`,
-          context: { zIndex: zIndexValue, recommendedScale: config.scale }
-        });
-      }
 
       // Check for negative z-index
       if (zIndexValue < 0 && !config.negativeAllowed) {
@@ -226,17 +219,6 @@ export class LayoutAnalyzer {
         });
       }
 
-      // Check if z-index follows scale
-      if (zIndexValue > 0 && zIndexValue % config.scale !== 0) {
-        issues.push({
-          type: 'z_index_conflict',
-          severity: 'info',
-          message: `Z-index ${zIndexValue} doesn't follow scale (${config.scale}, ${config.scale * 2}, etc.)`,
-          elementId,
-          suggestedFix: `Use ${Math.ceil(zIndexValue / config.scale) * config.scale} or ${Math.floor(zIndexValue / config.scale) * config.scale}`,
-          context: { zIndex: zIndexValue, scale: config.scale }
-        });
-      }
 
       const layer = this.classifyZIndexLayer(zIndexValue);
 

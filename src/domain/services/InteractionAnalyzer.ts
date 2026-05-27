@@ -254,20 +254,6 @@ export class InteractionAnalyzer {
       }
     }
 
-    // Check font loading
-    const fontFamily = styles.fontFamily;
-    if (fontFamily && !fontFamily.includes('font-display')) {
-      issues.push({
-        type: 'layout_shift_potential',
-        severity: 'info',
-        message: 'Custom fonts may cause layout shift without font-display: swap',
-        elementId,
-        selector,
-        suggestedFix: 'Add font-display: swap to @font-face declarations',
-        learnMoreUrl: 'https://web.dev/font-display/',
-        context: { hasFontDisplay: false, fontFamily }
-      });
-    }
 
     return {
       preventsImageShift: this.checksImageShiftPrevention(styles),
