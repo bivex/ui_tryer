@@ -78,7 +78,7 @@ export class AdvancedElementAnalyzer {
 
     // Phase 4: Advanced analysis
     issues.push(...this.analyzeResponsiveAdvanced(elementId, selector, computedStyles, boxModel, context?.viewport, rules.responsive));
-    issues.push(...this.analyzePerformanceAdvanced(elementId, selector, computedStyles, boxModel, rules.performance));
+    issues.push(...this.analyzePerformanceAdvanced(elementId, selector, computedStyles, boxModel, rules.performance, context));
     // issues.push(...this.analyzeConsistencyAdvanced(elementId, selector, computedStyles, boxModel, rules.consistency, context?.relations?.nearbyElements));
 
     return {
@@ -605,16 +605,8 @@ export class AdvancedElementAnalyzer {
 
     if (!styles) return issues;
 
-    // Prepare nearby elements data
-    const nearbyElements = context?.relations?.nearbyElements?.map(nearby => ({
-      id: nearby.id,
-      left: nearby.distance, // Simplified - would need actual positioning
-      right: nearby.distance,
-      top: nearby.distance,
-      bottom: nearby.distance,
-      centerX: nearby.distance,
-      centerY: nearby.distance
-    })) || [];
+    // Use actual positioning data from ContentScript
+    const nearbyElements = context?.relations?.nearbyElements || [];
 
     const analysis = LayoutAnalyzer.analyzeLayout(
       elementId,
@@ -824,19 +816,7 @@ export class AdvancedElementAnalyzer {
 
   // Helper methods
   private static calculateAPCAScore(foreground: string, background: string): number {
-    let bg = background;
-    if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)') {
-      bg = 'rgb(255, 255, 255)'; // Assume white background if transparent
-    }
-
-    const fgLum = this.getLuminance(foreground);
-    const bgLum = this.getLuminance(bg);
-
-    if (bgLum > fgLum) {
-      return (bgLum ** 0.56 - fgLum ** 0.57) * 1.14 * 100;
-    } else {
-      return (bgLum ** 0.65 - fgLum ** 0.62) * 1.14 * 100;
-    }
+    return APCAContrastAnalyzer.calculateContrast(foreground, background);
   }
 
   private static getLuminance(color: string): number {
@@ -1117,7 +1097,8 @@ export class AdvancedElementAnalyzer {
     selector: string,
     styles: any,
     boxModel: any,
-    rules?: any
+    rules?: any,
+    context?: ElementContext
   ): Issue[] {
     const issues: Issue[] = [];
 
@@ -1128,7 +1109,8 @@ export class AdvancedElementAnalyzer {
       selector,
       styles,
       boxModel,
-      rules
+      rules,
+      context?.domAttributes
     );
 
     // Convert analysis results to issues

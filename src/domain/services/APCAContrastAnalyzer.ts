@@ -27,17 +27,20 @@ export class APCAContrastAnalyzer {
     const fgLum = this.sRGBToY(foreground);
     const bgLum = this.sRGBToY(background);
 
+    // APCA-W3 formula (Somma-Myrdal): symmetric exponents, signed result
+    // Light bg: (bg^0.55 - fg^0.55) * 1.14
+    // Dark bg:  (fg^0.55 - bg^0.55) * 1.14 (same math, negative indicates dark-on-light)
     let deltaY: number;
-    if (bgLum > fgLum) {
+    if (bgLum >= fgLum) {
       // Light background, dark text
-      deltaY = Math.pow(bgLum, 0.56) - Math.pow(fgLum, 0.57);
+      deltaY = Math.pow(bgLum, 0.55) - Math.pow(fgLum, 0.55);
     } else {
       // Dark background, light text
-      deltaY = Math.pow(bgLum, 0.65) - Math.pow(fgLum, 0.62);
+      deltaY = Math.pow(fgLum, 0.55) - Math.pow(bgLum, 0.55);
     }
 
-    // Scale to Lc units (approximately 0-108 range)
-    return deltaY * 144;
+    // Scale to Lc units (0–~106 range)
+    return deltaY * 114;
   }
 
   /**
@@ -84,7 +87,7 @@ export class APCAContrastAnalyzer {
       isAccessible,
       required,
       contentType,
-      level: this.getWCAGLevel(absScore),
+      level: this.getAPCALevel(absScore),
       suggestions: isAccessible ? [] : this.generateSuggestions(foreground, background, required)
     };
   }
@@ -152,15 +155,55 @@ export class APCAContrastAnalyzer {
       return { r, g, b };
     }
 
-    // Handle named colors (simplified - would need full color map)
+    // Handle named colors — full CSS named color palette
     const namedColors: Record<string, string> = {
-      'black': '#000000',
-      'white': '#ffffff',
-      'red': '#ff0000',
-      'green': '#008000',
-      'blue': '#0000ff',
-      'gray': '#808080',
-      'grey': '#808080'
+      // Grayscale
+      'black': '#000000', 'white': '#ffffff', 'silver': '#c0c0c0', 'gray': '#808080', 'grey': '#808080',
+      'dimgray': '#696969', 'dimgrey': '#696969', 'lightslategray': '#778899', 'lightslategrey': '#778899',
+      'slategray': '#708090', 'slategrey': '#708090', 'darkslategray': '#2f4f4f', 'darkslategrey': '#2f4f4f',
+      'darkgray': '#a9a9a9', 'darkgrey': '#a9a9a9', 'lightgray': '#d3d3d3', 'lightgrey': '#d3d3d3',
+      'gainsboro': '#dcdcdc', 'whitesmoke': '#f5f5f5',
+      // Reds / Pinks
+      'red': '#ff0000', 'darkred': '#8b0000', 'firebrick': '#b22222', 'crimson': '#dc143c',
+      'indianred': '#cd5c5c', 'lightcoral': '#f08080', 'salmon': '#fa8072', 'darksalmon': '#e9967a',
+      'lightsalmon': '#ffa07a', 'orangered': '#ff4500', 'tomato': '#ff6347', 'deeppink': '#ff1493',
+      'hotpink': '#ff69b4', 'lightpink': '#ffb6c1', 'pink': '#ffc0cb', 'palevioletred': '#db7093',
+      'mediumvioletred': '#c71585',
+      // Oranges / Yellows
+      'orange': '#ffa500', 'darkorange': '#ff8c00', 'coral': '#ff7f50', 'gold': '#ffd700',
+      'yellow': '#ffff00', 'lightyellow': '#ffffe0', 'lemonchiffon': '#fffacd', 'lightgoldenrodyellow': '#fafad2',
+      'papayawhip': '#ffefd5', 'moccasin': '#ffe4b5', 'peachpuff': '#ffdab9', 'palegoldenrod': '#eee8aa',
+      'khaki': '#f0e68c', 'darkkhaki': '#bdb76b', 'goldenrod': '#daa520', 'darkgoldenrod': '#b8860b',
+      // Greens
+      'green': '#008000', 'darkgreen': '#006400', 'lime': '#00ff00', 'limegreen': '#32cd32',
+      'lightgreen': '#90ee90', 'palegreen': '#98fb98', 'darkseagreen': '#8fbc8f', 'mediumspringgreen': '#00fa9a',
+      'springgreen': '#00ff7f', 'seagreen': '#2e8b57', 'forestgreen': '#228b22', 'olivedrab': '#6b8e23',
+      'olive': '#808000', 'darkolivegreen': '#556b2f', 'yellowgreen': '#9acd32', 'chartreuse': '#7fff00',
+      'lawngreen': '#7cfc00', 'greenyellow': '#adff2f', 'mediumseagreen': '#3cb371',
+      'mediumaquamarine': '#66cdaa',
+      // Cyans / Teals
+      'cyan': '#00ffff', 'aqua': '#00ffff', 'lightcyan': '#e0ffff', 'paleturquoise': '#afeeee',
+      'aquamarine': '#7fffd4', 'turquoise': '#40e0d0', 'mediumturquoise': '#48d1cc',
+      'darkturquoise': '#00ced1', 'teal': '#008080', 'darkcyan': '#008b8b',
+      // Blues
+      'blue': '#0000ff', 'darkblue': '#00008b', 'mediumblue': '#0000cd', 'navy': '#000080',
+      'midnightblue': '#191970', 'royalblue': '#4169e1', 'steelblue': '#4682b4', 'dodgerblue': '#1e90ff',
+      'deepskyblue': '#00bfff', 'skyblue': '#87ceeb', 'lightskyblue': '#87cefa', 'lightsteelblue': '#b0c4de',
+      'lightblue': '#add8e6', 'powderblue': '#b0e0e6', 'cornflowerblue': '#6495ed',
+      'mediumslateblue': '#7b68ee', 'slateblue': '#6a5acd', 'darkslateblue': '#483d8b',
+      'aliceblue': '#f0f8ff', 'cadetblue': '#5f9ea0',
+      // Purples / Violets
+      'purple': '#800080', 'darkmagenta': '#8b008b', 'magenta': '#ff00ff', 'fuchsia': '#ff00ff',
+      'orchid': '#da70d6', 'mediumorchid': '#ba55d3', 'mediumpurple': '#9370db', 'blueviolet': '#8a2be2',
+      'darkviolet': '#9400d3', 'darkorchid': '#9932cc', 'violet': '#ee82ee', 'plum': '#dda0dd',
+      'thistle': '#d8bfd8', 'lavender': '#e6e6fa', 'indigo': '#4b0082', 'rebeccapurple': '#663399',
+      // Browns
+      'brown': '#a52a2a', 'saddlebrown': '#8b4513', 'sienna': '#a0522d', 'chocolate': '#d2691e',
+      'peru': '#cd853f', 'sandybrown': '#f4a460', 'burlywood': '#deb887', 'tan': '#d2b48c',
+      'rosybrown': '#bc8f8f', 'wheat': '#f5deb3', 'cornsilk': '#fff8dc', 'bisque': '#ffe4c4',
+      'navajowhite': '#ffdead', 'blanchedalmond': '#ffebcd',
+      // Misc
+      'maroon': '#800000', 'transparent': '#ffffff',
     };
 
     if (namedColors[cleanColor]) {
@@ -171,12 +214,13 @@ export class APCAContrastAnalyzer {
   }
 
   /**
-   * Determine WCAG conformance level based on APCA score
+   * Determine APCA conformance level based on Lc score
+   * APCA uses its own levels, not WCAG 2.x AA/AAA
    */
-  private static getWCAGLevel(score: number): 'A' | 'AA' | 'AAA' | 'fail' {
-    if (score >= 75) return 'AAA';
-    if (score >= 60) return 'AA';
-    if (score >= 45) return 'A';
+  private static getAPCALevel(score: number): 'best' | 'good' | 'minimum' | 'fail' {
+    if (score >= 90) return 'best';
+    if (score >= 75) return 'good';
+    if (score >= 60) return 'minimum';
     return 'fail';
   }
 
@@ -324,7 +368,7 @@ export interface AccessibilityResult {
   isAccessible: boolean;
   required: number;
   contentType: string;
-  level: 'A' | 'AA' | 'AAA' | 'fail';
+  level: 'best' | 'good' | 'minimum' | 'fail';
   suggestions: ColorSuggestion[];
 }
 

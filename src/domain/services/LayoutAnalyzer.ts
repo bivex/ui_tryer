@@ -61,12 +61,12 @@ export class LayoutAnalyzer {
     const config = rules || { pixelTolerance: 2, minElementsInLine: 3 };
 
     const elementRect = {
-      left: boxModel.left || 0,
-      right: (boxModel.left || 0) + (boxModel.width || 0),
-      top: boxModel.top || 0,
-      bottom: (boxModel.top || 0) + (boxModel.height || 0),
-      centerX: (boxModel.left || 0) + (boxModel.width || 0) / 2,
-      centerY: (boxModel.top || 0) + (boxModel.height || 0) / 2
+      left: boxModel.content?.x || boxModel.left || 0,
+      right: (boxModel.content?.x || boxModel.left || 0) + (boxModel.content?.width || boxModel.width || 0),
+      top: boxModel.content?.y || boxModel.top || 0,
+      bottom: (boxModel.content?.y || boxModel.top || 0) + (boxModel.content?.height || boxModel.height || 0),
+      centerX: (boxModel.content?.x || boxModel.left || 0) + (boxModel.content?.width || boxModel.width || 0) / 2,
+      centerY: (boxModel.content?.y || boxModel.top || 0) + (boxModel.content?.height || boxModel.height || 0) / 2
     };
 
     // Check for nearby alignments
@@ -216,6 +216,19 @@ export class LayoutAnalyzer {
           suggestedFix: 'Use positive z-index values or remove negative values',
           learnMoreUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/z-index',
           context: { zIndex: zIndexValue, negativeAllowed: config.negativeAllowed }
+        });
+      }
+
+      // Check for excessively high z-index
+      if (zIndexValue > config.maxRecommended) {
+        issues.push({
+          type: 'z_index_conflict',
+          severity: 'warning',
+          message: `Z-index (${zIndexValue}) exceeds recommended maximum (${config.maxRecommended}). Consider using a structured z-index scale.`,
+          elementId,
+          suggestedFix: `Use z-index within recommended scale (max: ${config.maxRecommended})`,
+          learnMoreUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/z-index',
+          context: { zIndex: zIndexValue, maxRecommended: config.maxRecommended }
         });
       }
 

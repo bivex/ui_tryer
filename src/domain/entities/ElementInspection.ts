@@ -115,6 +115,9 @@ export interface ElementContext {
 
   /** Text content of the element for typography analysis */
   textContent?: string;
+
+  /** Raw DOM attributes (src, loading, alt, etc.) for performance analysis */
+  domAttributes?: Record<string, string>;
 }
 
 /**

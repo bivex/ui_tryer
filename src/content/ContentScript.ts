@@ -270,6 +270,23 @@ class ContentScript {
     );
   }
 
+  private extractDomAttributes(element: Element): Record<string, string> {
+    const attrs: Record<string, string> = {};
+    const htmlElement = element as HTMLElement;
+    const tag = element.tagName.toLowerCase();
+
+    // Extract common HTML attributes relevant to analysis
+    const relevantAttrs = ['loading', 'src', 'srcset', 'sizes', 'alt', 'width', 'height', 'role', 'aria-label', 'aria-labelledby', 'aria-hidden', 'tabindex'];
+    for (const attr of relevantAttrs) {
+      const value = htmlElement.getAttribute(attr);
+      if (value !== null) {
+        attrs[attr] = value;
+      }
+    }
+
+    return attrs;
+  }
+
   private createSelectorForElement(element: Element): string {
     const tagName = element.tagName.toLowerCase();
     const id = element.id ? `#${element.id}` : '';
@@ -286,8 +303,46 @@ class ContentScript {
       page: { primaryColor: this.extractPrimaryColor(), fontFamily: this.extractPrimaryFontFamily() },
       interaction: { isHoverable: htmlElement.matches(':hover'), isFocusable: htmlElement.matches(':focus') },
       textContent: htmlElement.innerText || htmlElement.textContent || '',
-      computedStates: this.detectPseudoStates(element)
+      computedStates: this.detectPseudoStates(element),
+      relations: { nearbyElements: this.findNearbyElements(htmlElement) },
+      domAttributes: this.extractDomAttributes(element)
     };
+  }
+
+  private findNearbyElements(element: HTMLElement): any[] {
+    const rect = element.getBoundingClientRect();
+    const scanRadius = 150;
+    const candidates: { el: Element; rect: DOMRect }[] = [];
+
+    // Scan siblings and parent's children within scanRadius
+    const parent = element.parentElement;
+    if (!parent) return [];
+
+    for (const child of Array.from(parent.children)) {
+      if (child === element) continue;
+      if (this.shouldSkipElement(child)) continue;
+
+      const childRect = child.getBoundingClientRect();
+      const distance = Math.sqrt(
+        Math.pow((childRect.left + childRect.width / 2) - (rect.left + rect.width / 2), 2) +
+        Math.pow((childRect.top + childRect.height / 2) - (rect.top + rect.height / 2), 2)
+      );
+
+      if (distance < scanRadius) {
+        candidates.push({ el: child, rect: childRect });
+      }
+    }
+
+    return candidates.map(c => ({
+      id: this.createSelectorForElement(c.el),
+      left: c.rect.left + window.scrollX,
+      right: c.rect.right + window.scrollX,
+      top: c.rect.top + window.scrollY,
+      bottom: c.rect.bottom + window.scrollY,
+      centerX: c.rect.left + c.rect.width / 2,
+      centerY: c.rect.top + c.rect.height / 2,
+      distance: 0
+    }));
   }
 
   private detectPseudoStates(element: Element): any {

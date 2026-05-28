@@ -180,7 +180,7 @@ export class TypographyAnalyzer {
 
     // Check for orphans and widows if content is available
     if (content) {
-      const orphanWidowIssues = this.checkOrphansAndWidows(content, rules?.orphansWidows);
+      const orphanWidowIssues = this.checkOrphansAndWidows(content, rules?.orphansWidows, Math.round(lineLength));
       issues.push(...orphanWidowIssues);
     }
 
@@ -190,31 +190,36 @@ export class TypographyAnalyzer {
   /**
    * Check for orphans and widows
    */
-  private static checkOrphansAndWidows(content: string, rules?: any): TypographyIssue[] {
+  private static checkOrphansAndWidows(content: string, rules?: any, charsPerLine?: number): TypographyIssue[] {
     const issues: TypographyIssue[] = [];
     const config = rules || { maxOrphanLines: 2, maxWidowLines: 1, minLastLineRatio: 0.3 };
 
-    // Split into paragraphs
-    const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim().length > 100);
+    // Use estimated chars per line (from typography analysis or default)
+    const cpl = charsPerLine || 65;
+
+    // Split by block-level boundaries — paragraphs, line breaks, or semantic blocks
+    // Browser innerText preserves line breaks within blocks but uses \n for block boundaries
+    const paragraphs = content.split(/\n/).filter(p => p.trim().length > 100);
 
     for (const paragraph of paragraphs) {
       const text = paragraph.trim();
       const words = text.split(/\s+/);
-      if (words.length < 20) continue; // Skip very short paragraphs
+      if (words.length < 10) continue; // Skip very short paragraphs
 
-      // Estimate lines (simplified - in reality would need actual rendering)
-      const estimatedLines = Math.ceil(text.length / 70); // Estimate based on chars per line
+      // Estimate number of lines based on actual chars per line
+      const estimatedLines = Math.ceil(text.length / cpl);
 
-      if (estimatedLines > 1) {
-        // Check last line ratio
-        const lastLineWords = words.length % 10 || 10;
-        const lastLineRatio = lastLineWords / 10;
+      if (estimatedLines >= 2) {
+        // Estimate words on the last line
+        const wordsPerLine = Math.max(1, Math.floor(cpl / 5)); // avg word ~5 chars + space
+        const lastLineWords = words.length % wordsPerLine || wordsPerLine;
+        const lastLineRatio = lastLineWords / wordsPerLine;
 
-        if (lastLineRatio < config.minLastLineRatio) {
+        if (lastLineRatio < config.minLastLineRatio && estimatedLines > 1) {
           issues.push({
             type: 'widow',
             severity: 'info',
-            message: `Widow detected: last line has only ${(lastLineRatio * 100).toFixed(0)}% of optimal length`,
+            message: `Widow detected: last line has only ${lastLineWords} word(s) (~${(lastLineRatio * 100).toFixed(0)}% of line capacity)`,
             value: lastLineRatio,
             optimal: config.minLastLineRatio
           });

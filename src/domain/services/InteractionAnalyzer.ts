@@ -28,20 +28,18 @@ export class InteractionAnalyzer {
     computedStates?: any,
     rules?: any
   ): InteractionAnalysis {
-    const stateAnalysis = this.analyzeStates(elementId, selector, styles, computedStates, rules?.requiredStates);
+    const stateAnalysis = this.analyzeStates(elementId, selector, styles, computedStates, rules);
     const loadingAnalysis = this.analyzeLoadingStates(elementId, selector, styles, rules?.loading);
-    const clsAnalysis = this.analyzeCLSPrevention(elementId, selector, styles, rules?.layoutShift);
+    // CLS prevention is handled by PerformanceAnalyzer to avoid duplicate issues
 
     const issues: InteractionIssue[] = [
       ...stateAnalysis.issues,
-      ...loadingAnalysis.issues,
-      ...clsAnalysis.issues
+      ...loadingAnalysis.issues
     ];
 
     return {
       states: stateAnalysis,
       loading: loadingAnalysis,
-      cls: clsAnalysis,
       issues,
       suggestions: this.generateInteractionSuggestions(issues, rules)
     };
@@ -55,10 +53,11 @@ export class InteractionAnalyzer {
     selector: string,
     styles: any,
     computedStates?: any,
-    requiredStates?: any
+    rules?: any
   ): StateAnalysis {
     const issues: InteractionIssue[] = [];
-    const config = requiredStates || ['hover', 'focus', 'active'];
+    const config = rules?.requiredStates || ['hover', 'focus', 'active'];
+    const minDiffThreshold = rules?.stateVisibility?.minDifference ?? 0.1;
 
     const isInteractive = this.isInteractiveElement(selector, styles);
 
@@ -98,7 +97,7 @@ export class InteractionAnalyzer {
         const differences = this.calculateStateDifferences(styles, stateStyles);
         stateDifferences[state] = differences;
 
-        if (differences.perceptibleDifference < 0.3) { // Less than 30% difference
+        if (differences.perceptibleDifference < minDiffThreshold) {
           issues.push({
             type: 'state_styles_missing',
             severity: state === 'focus' ? 'error' : 'warning',
@@ -383,7 +382,6 @@ export class InteractionAnalyzer {
 
     const stateIssues = issues.filter(i => i.type === 'state_styles_missing');
     const loadingIssues = issues.filter(i => i.type === 'loading_state_missing');
-    const clsIssues = issues.filter(i => i.type === 'layout_shift_potential');
 
     if (stateIssues.length > 0) {
       suggestions.push({
@@ -403,15 +401,6 @@ export class InteractionAnalyzer {
       });
     }
 
-    if (clsIssues.length > 0) {
-      suggestions.push({
-        type: 'cls_prevention',
-        description: `${clsIssues.length} elements may cause layout shift`,
-        action: 'reserve_space',
-        impact: 'high'
-      });
-    }
-
     return suggestions;
   }
 }
@@ -422,7 +411,6 @@ export class InteractionAnalyzer {
 export interface InteractionAnalysis {
   states: StateAnalysis;
   loading: LoadingAnalysis;
-  cls: CLSPreventionAnalysis;
   issues: InteractionIssue[];
   suggestions: InteractionSuggestion[];
 }

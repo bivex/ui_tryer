@@ -26,7 +26,8 @@ export class PerformanceAnalyzer {
     selector: string,
     styles: any,
     boxModel: any,
-    rules?: any
+    rules?: any,
+    domAttributes?: Record<string, string>
   ): PerformanceAnalysis {
     const config = rules || {
       layoutShift: {
@@ -57,7 +58,7 @@ export class PerformanceAnalyzer {
     issues.push(...animationIssues);
 
     // Analyze resource loading
-    const resourceIssues = this.analyzeResourceLoading(elementId, selector, styles, config.resources);
+    const resourceIssues = this.analyzeResourceLoading(elementId, selector, styles, config.resources, domAttributes);
     issues.push(...resourceIssues);
 
     // Calculate performance score
@@ -224,16 +225,18 @@ export class PerformanceAnalyzer {
     elementId: string,
     selector: string,
     styles: any,
-    config: any
+    config: any,
+    domAttributes?: Record<string, string>
   ): PerformanceIssue[] {
     const issues: PerformanceIssue[] = [];
 
     // Check images for lazy loading
     if (this.isImageElement(selector)) {
-      const hasLoading = styles.loading === 'lazy';
-      const isAboveFold = this.isLikelyAboveFold(selector); // Simplified heuristic
+      const loadingAttr = domAttributes?.loading || '';
+      const srcAttr = domAttributes?.src || domAttributes?.srcset || '';
+      const isAboveFold = this.isLikelyAboveFold(selector);
 
-      if (!hasLoading && !isAboveFold && config.lazyLoadingRecommended) {
+      if (loadingAttr !== 'lazy' && !isAboveFold && config.lazyLoadingRecommended) {
         issues.push({
           type: 'missing_lazy_loading',
           severity: 'info',
@@ -243,14 +246,13 @@ export class PerformanceAnalyzer {
           suggestedFix: 'Add loading="lazy" attribute',
           codeExample: `<img src="..." loading="lazy" />`,
           learnMoreUrl: 'https://web.dev/browser-level-image-lazy-loading/',
-          context: { hasLoading, isAboveFold },
+          context: { loading: loadingAttr, isAboveFold },
           impact: 'low'
         });
       }
 
-      // Check for unoptimized images
-      const src = styles.src || '';
-      if (src && !src.includes('.webp') && !src.includes('.avif')) {
+      // Check for unoptimized images via src attribute
+      if (srcAttr && !srcAttr.includes('.webp') && !srcAttr.includes('.avif')) {
         issues.push({
           type: 'unoptimized_image',
           severity: 'info',
@@ -259,24 +261,10 @@ export class PerformanceAnalyzer {
           selector,
           suggestedFix: 'Convert images to WebP or AVIF format',
           learnMoreUrl: 'https://web.dev/serve-images-webp/',
-          context: { currentFormat: this.getImageExtension(src) },
+          context: { currentFormat: this.getImageExtension(srcAttr) },
           impact: 'low'
         });
       }
-    }
-
-    // Check for unused styles (simplified check)
-    if (styles.unused && styles.unused.length > 0) {
-      issues.push({
-        type: 'unused_styles',
-        severity: 'info',
-        message: `${styles.unused.length} unused CSS properties detected`,
-        elementId,
-        selector,
-        suggestedFix: 'Remove unused CSS to reduce bundle size',
-        context: { unusedCount: styles.unused.length },
-        impact: 'low'
-      });
     }
 
     return issues;

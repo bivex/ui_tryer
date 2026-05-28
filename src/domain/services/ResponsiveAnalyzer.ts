@@ -163,7 +163,7 @@ export class ResponsiveAnalyzer {
     const width = parseFloat(styles.width);
     const height = parseFloat(styles.height);
 
-    if (width && width > config.breakpoints.md && !styles.maxWidth) {
+    if (width && width > config.breakpoints.md && (styles.maxWidth === 'none' || !styles.maxWidth)) {
       issues.push({
         type: 'breakpoint_inconsistency',
         severity: 'info',
@@ -373,15 +373,9 @@ export class ResponsiveAnalyzer {
    * Calculate breakpoint coverage
    */
   private static calculateBreakpointCoverage(styles: any, breakpoints: any): number {
-    // Simplified - would need to analyze media queries
-    let coverage = 0;
-
-    if (styles.width && styles.width.includes('%')) coverage += 25;
-    if (styles.maxWidth) coverage += 25;
-    if (styles.flex || styles.grid) coverage += 25;
-    if (styles.mediaQueries) coverage += 25; // Would need real CSS analysis
-
-    return Math.min(coverage, 100);
+    // Breakpoint coverage requires CSS media query analysis which is not available
+    // from computed styles alone. Return 0 to avoid misleading data.
+    return 0;
   }
 
   /**
