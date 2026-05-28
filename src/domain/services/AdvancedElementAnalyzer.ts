@@ -469,11 +469,14 @@ export class AdvancedElementAnalyzer {
         // Skip line_height for html/body — reset defaults are not actionable
         const typTag = selector.split(/[.#\[]/)[0].toLowerCase();
         if (issue.type === 'line_height' && (typTag === 'html' || typTag === 'body')) continue;
+        // Skip line_height for inline elements — not meaningful for strong, a, em, span, etc.
+        const inlineTags = ['a', 'strong', 'em', 'b', 'i', 'small', 'span', 'code', 'sub', 'sup', 'abbr', 'label'];
+        if (issue.type === 'line_height' && inlineTags.includes(typTag)) continue;
         // Skip line_length/line_height for elements without substantial text content
         const textLen = context?.textContent?.length ?? 0;
         if (issue.type === 'line_length' && textLen < 100) continue;
-        // Skip line_length for layout divs (col-, row, card, container) — not text content
-        if (issue.type === 'line_length' && typTag === 'div' && /\.col-|\.row|\.card|\.container|\.album|\.jumbotron/i.test(selector)) continue;
+        // Skip line_length for layout containers (col-, row, card, section, jumbotron, etc.)
+        if (issue.type === 'line_length' && /\.col-|\.row|\.card|\.container|\.album|\.jumbotron|\.hero|\.banner/i.test(selector) && typTag !== 'p') continue;
         // Skip "Line too short" for headings, buttons, lead text, and short text
         if (issue.message.includes('too short') && (isHeading || isLeafText || containerWidth < 200 || selector.includes('.lead'))) continue;
         if (issue.type === 'line_height' && selector.includes('.lead')) continue;

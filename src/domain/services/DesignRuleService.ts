@@ -33,7 +33,7 @@ export class DesignRuleService {
         opticalAlignment: { textDescenders: 0, iconPadding: 0, avatarWeight: 0 } 
       } as VerticalRhythmRules,
       typography: {
-        lineLength: { narrow: { min: 45, max: 60 }, comfortable: { min: 60, max: 80 }, wide: { min: 80, max: 100 } },
+        lineLength: { narrow: { min: 45, max: 60 }, comfortable: { min: 55, max: 85 }, wide: { min: 85, max: 100 } },
         lineHeightRatios: { small: 1.4, body: 1.5, subheading: 1.2, heading: 1.1, display: 1.0 },
         typeScales: { 'minor-second': 1.067, 'major-second': 1.125, 'minor-third': 1.2, 'major-third': 1.25, 'perfect-fourth': 1.333, 'golden-ratio': 1.618 },
         orphansWidows: { maxOrphanLines: 2, maxWidowLines: 2, minLastLineRatio: 0.3 },

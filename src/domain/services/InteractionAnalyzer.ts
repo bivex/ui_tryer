@@ -71,13 +71,15 @@ export class InteractionAnalyzer {
     }
 
     // If no pseudo-state data provided (e.g. CLI/headless), skip state analysis
+    // Also skip if all states are empty objects — means CSS scan couldn't find rules
     if (!computedStates || Object.keys(computedStates).length === 0) {
-      return {
-        hasStates: false,
-        missingStates: [],
-        stateDifferences: {},
-        issues: []
-      };
+      return { hasStates: false, missingStates: [], stateDifferences: {}, issues: [] };
+    }
+    const hasAnyStateData = Object.values(computedStates).some(
+      (s: any) => s && typeof s === 'object' && Object.keys(s).length > 0
+    );
+    if (!hasAnyStateData) {
+      return { hasStates: false, missingStates: [], stateDifferences: {}, issues: [] };
     }
 
     const availableStates = computedStates;
@@ -110,7 +112,7 @@ export class InteractionAnalyzer {
         if (differences.perceptibleDifference < minDiffThreshold) {
           issues.push({
             type: 'state_styles_missing',
-            severity: state === 'focus' ? 'error' : 'warning',
+            severity: state === 'focus' ? 'warning' : 'info',
             message: `:${state} state barely differs from default state`,
             elementId,
             selector,

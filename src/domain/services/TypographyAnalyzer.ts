@@ -145,7 +145,7 @@ export class TypographyAnalyzer {
     const lineHeightRatio = lineHeight / fontSize;
 
     // Line length issues
-    const lengthRules = rules?.lineLength || { comfortable: { min: 55, max: 75 } };
+    const lengthRules = rules?.lineLength || { comfortable: { min: 55, max: 85 } };
     const roundedLength = Math.round(lineLength);
 
     if (roundedLength < lengthRules.comfortable.min) {
