@@ -46,7 +46,7 @@ export class DesignRuleService {
       } as ColorHarmonyRules,
       layout: {
         alignment: { pixelTolerance: 2, minElementsInLine: 3 },
-        zIndex: { scale: 10, maxRecommended: 1000, negativeAllowed: false },
+        zIndex: { scale: 10, maxRecommended: 1050, negativeAllowed: false },
         visualHierarchy: { weightFactors: { size: 0.4, colorSaturation: 0.2, borderWeight: 0.1, shadowPresence: 0.1, fontWeight: 0.1, position: 0.1 }, focalPointThreshold: 0.6, maxFocalPoints: 3 },
         grid: { detectGridSize: true, commonGridSizes: [4, 8, 12, 16, 24], alignmentTolerance: 2 },
       } as LayoutAnalysisRules,

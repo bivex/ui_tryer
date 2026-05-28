@@ -28,7 +28,7 @@ interface RawElement {
   boxModel: BoxModel;
   textContent: string;
   domAttributes: Record<string, string>;
-  viewport: { width: number; height: number };
+  viewport: { width: number; height: number; devicePixelRatio: number };
 }
 
 // ─── Puppeteer: extract elements from page ───────────
@@ -49,10 +49,11 @@ async function extractElements(page: Page): Promise<RawElement[]> {
       if (skipTags.has(tag)) continue;
       if (el.offsetParent === null && tag !== 'BODY' && tag !== 'HTML') continue;
 
-      // Skip extension UI
+      // Skip extension UI + JS-injected monitors (Chart.js etc.)
       const id = el.id || '';
-      const classes = Array.from(el.classList).join(' ');
-      if (skipPrefixes.some(p => id.startsWith(p) || classes.includes(p))) continue;
+      const elClasses = Array.from(el.classList);
+      if (skipPrefixes.some(p => id.startsWith(p) || elClasses.some(c => c.startsWith(p)))) continue;
+      if (elClasses.some(c => c.startsWith('chartjs-'))) continue;
 
       const rect = el.getBoundingClientRect();
       const style = window.getComputedStyle(el);
@@ -102,8 +103,8 @@ async function extractElements(page: Page): Promise<RawElement[]> {
       // Selector
       const tagName = tag.toLowerCase();
       const elId = el.id ? `#${el.id}` : '';
-      const elClasses = Array.from(el.classList).map(c => `.${c}`).join('');
-      const selector = elId ? `${tagName}${elId}` : elClasses ? `${tagName}${elClasses}` : tagName;
+      const classStr = Array.from(el.classList).map(c => `.${c}`).join('');
+      const selector = elId ? `${tagName}${elId}` : classStr ? `${tagName}${classStr}` : tagName;
 
       // DOM attributes
       const domAttributes: Record<string, string> = {};
@@ -123,7 +124,7 @@ async function extractElements(page: Page): Promise<RawElement[]> {
         boxModel,
         textContent,
         domAttributes,
-        viewport: { width: window.innerWidth, height: window.innerHeight },
+        viewport: { width: window.innerWidth, height: window.innerHeight, devicePixelRatio: window.devicePixelRatio || 1 },
       });
     }
 

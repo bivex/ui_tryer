@@ -94,8 +94,8 @@ export class ResponsiveAnalyzer {
     const elementWidth = boxModel.width || parseFloat(styles.width) || 0;
     const elementHeight = boxModel.height || parseFloat(styles.height) || 0;
 
-    // Check horizontal overflow
-    if (elementWidth > viewport.width) {
+    // Check horizontal overflow (skip JS-injected monitors wider than 2x viewport)
+    if (elementWidth > viewport.width && elementWidth < viewport.width * 2) {
       issues.push({
         type: 'content_overflow',
         severity: 'error',
@@ -113,8 +113,8 @@ export class ResponsiveAnalyzer {
       });
     }
 
-    // Check for horizontal scroll issues
-    if (styles.overflowX === 'scroll' || styles.overflowX === 'auto') {
+    // Check for horizontal scroll issues (skip .table-responsive — intentional Bootstrap pattern)
+    if ((styles.overflowX === 'scroll' || styles.overflowX === 'auto') && !selector.includes('.table-responsive')) {
       issues.push({
         type: 'horizontal_scroll',
         severity: 'warning',
@@ -165,7 +165,12 @@ export class ResponsiveAnalyzer {
     const height = parseFloat(styles.height);
 
     // Skip if width ≈ viewport — it's a responsive container, not fixed CSS
-    if (viewportWidth && width && Math.abs(width - viewportWidth) < 50) {
+    if (viewportWidth && width && Math.abs(width - viewportWidth) < 300) {
+      return issues;
+    }
+
+    // Skip elements wider than 2x viewport — JS-injected layout monitors (Chart.js etc.)
+    if (viewportWidth && width && width > viewportWidth * 2) {
       return issues;
     }
 

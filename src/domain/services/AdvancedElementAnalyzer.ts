@@ -476,7 +476,7 @@ export class AdvancedElementAnalyzer {
         const textLen = context?.textContent?.length ?? 0;
         if (issue.type === 'line_length' && textLen < 100) continue;
         // Skip line_length for layout containers (col-, row, card, section, jumbotron, etc.)
-        if (issue.type === 'line_length' && /\.col-|\.row|\.card|\.container|\.album|\.jumbotron|\.hero|\.banner/i.test(selector) && typTag !== 'p') continue;
+        if (issue.type === 'line_length' && /\.col-|\.row|\.card|\.container|\.album|\.jumbotron|\.hero|\.banner|\.sidebar/i.test(selector) && typTag !== 'p') continue;
         // Skip "Line too short" for headings, buttons, lead text, and short text
         if (issue.message.includes('too short') && (isHeading || isLeafText || containerWidth < 200 || selector.includes('.lead'))) continue;
         if (issue.type === 'line_height' && selector.includes('.lead')) continue;
@@ -1099,7 +1099,7 @@ export class AdvancedElementAnalyzer {
       if (issue.type === 'breakpoint_inconsistency') {
         const selectorLower = selector.toLowerCase();
         const bTag = selectorLower.split(/[.#]/)[0];
-        if (selectorLower.includes('html') || selectorLower.includes('body') || selectorLower.includes('.row') || selectorLower.includes('.container') || selectorLower.includes('.col-') || bTag === 'p' || bTag === 'section' || bTag === 'main') continue;
+        if (selectorLower.includes('html') || selectorLower.includes('body') || selectorLower.includes('.row') || selectorLower.includes('.container') || selectorLower.includes('.col-') || bTag === 'p' || bTag === 'section' || bTag === 'main' || bTag === 'h1' || bTag === 'h2' || bTag === 'h3' || bTag === 'h4' || bTag === 'h5' || bTag === 'h6' || bTag === 'canvas' || bTag === 'thead' || bTag === 'tbody' || bTag === 'tr' || bTag === 'td' || bTag === 'th' || bTag === 'table' || bTag === 'input') continue;
       }
 
       issues.push({
