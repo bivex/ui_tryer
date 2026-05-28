@@ -70,7 +70,17 @@ export class InteractionAnalyzer {
       };
     }
 
-    const availableStates = computedStates || {};
+    // If no pseudo-state data provided (e.g. CLI/headless), skip state analysis
+    if (!computedStates || Object.keys(computedStates).length === 0) {
+      return {
+        hasStates: false,
+        missingStates: [],
+        stateDifferences: {},
+        issues: []
+      };
+    }
+
+    const availableStates = computedStates;
     const missingStates: string[] = [];
     const stateDifferences: { [state: string]: StateDifference } = {};
 

@@ -165,7 +165,7 @@ export class ResponsiveAnalyzer {
     const height = parseFloat(styles.height);
 
     // Skip if width ≈ viewport — it's a responsive container, not fixed CSS
-    if (viewportWidth && width && Math.abs(width - viewportWidth) < 30) {
+    if (viewportWidth && width && Math.abs(width - viewportWidth) < 50) {
       return issues;
     }
 

@@ -466,9 +466,14 @@ export class AdvancedElementAnalyzer {
     // Convert analysis results to issues
     for (const issue of analysis.issues) {
       if (issue.type === 'line_length' || issue.type === 'line_height') {
+        // Skip line_height for html/body — reset defaults are not actionable
+        const typTag = selector.split(/[.#\[]/)[0].toLowerCase();
+        if (issue.type === 'line_height' && (typTag === 'html' || typTag === 'body')) continue;
         // Skip line_length/line_height for elements without substantial text content
         const textLen = context?.textContent?.length ?? 0;
         if (issue.type === 'line_length' && textLen < 100) continue;
+        // Skip line_length for layout divs (col-, row, card, container) — not text content
+        if (issue.type === 'line_length' && typTag === 'div' && /\.col-|\.row|\.card|\.container|\.album|\.jumbotron/i.test(selector)) continue;
         // Skip "Line too short" for headings, buttons, lead text, and short text
         if (issue.message.includes('too short') && (isHeading || isLeafText || containerWidth < 200 || selector.includes('.lead'))) continue;
         if (issue.type === 'line_height' && selector.includes('.lead')) continue;
@@ -477,8 +482,12 @@ export class AdvancedElementAnalyzer {
       }
 
       if (issue.type === 'widow' || issue.type === 'orphan') {
-        // Widows/orphans only matter for multi-line paragraphs
-        if (!isBlock || (context?.textContent && context.textContent.length < 100)) continue;
+        // Widows/orphans only matter for multi-line text paragraphs, not containers
+        if (!isBlock) continue;
+        const textLen = context?.textContent?.length ?? 0;
+        if (textLen < 100) continue;
+        // Skip for section-level containers
+        if (/section|\.jumbotron/i.test(selector)) continue;
       }
 
       issues.push({
@@ -618,6 +627,10 @@ export class AdvancedElementAnalyzer {
     const tag = selector.split(/[.#\[]/)[0].toLowerCase();
     const isSvgInternal = ['svg', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'ellipse', 'g', 'text', 'tspan', 'use', 'clippath', 'defs'].includes(tag);
     if (isSvgInternal) return issues;
+
+    // Skip alignment for inline text elements — sub-pixel offsets are not actionable
+    const isInlineText = ['span', 'strong', 'em', 'b', 'i', 'small', 'abbr', 'code', 'sub', 'sup'].includes(tag);
+    if (isInlineText) return issues;
 
     // Use actual positioning data from ContentScript
     const nearbyElements = context?.relations?.nearbyElements || [];
@@ -1082,7 +1095,8 @@ export class AdvancedElementAnalyzer {
       // Filter out redundant responsive issues for high-level elements
       if (issue.type === 'breakpoint_inconsistency') {
         const selectorLower = selector.toLowerCase();
-        if (selectorLower.includes('html') || selectorLower.includes('body') || selectorLower.includes('.row') || selectorLower.includes('.container')) continue;
+        const bTag = selectorLower.split(/[.#]/)[0];
+        if (selectorLower.includes('html') || selectorLower.includes('body') || selectorLower.includes('.row') || selectorLower.includes('.container') || selectorLower.includes('.col-') || bTag === 'p' || bTag === 'section' || bTag === 'main') continue;
       }
 
       issues.push({
