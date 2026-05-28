@@ -470,7 +470,7 @@ export class AdvancedElementAnalyzer {
         const typTag = selector.split(/[.#\[]/)[0].toLowerCase();
         if (issue.type === 'line_height' && (typTag === 'html' || typTag === 'body')) continue;
         // Skip line_height for inline elements — not meaningful for strong, a, em, span, etc.
-        const inlineTags = ['a', 'strong', 'em', 'b', 'i', 'small', 'span', 'code', 'sub', 'sup', 'abbr', 'label'];
+        const inlineTags = ['a', 'strong', 'em', 'b', 'i', 'small', 'span', 'code', 'sub', 'sup', 'abbr', 'label', 'text', 'tspan'];
         if (issue.type === 'line_height' && inlineTags.includes(typTag)) continue;
         // Skip line_length/line_height for elements without substantial text content
         const textLen = context?.textContent?.length ?? 0;
