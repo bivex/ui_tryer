@@ -53,7 +53,7 @@ export class AdvancedElementAnalyzer {
   ): ElementInspection {
     const issues: Issue[] = [];
     const hasText = !!(context?.textContent && context.textContent.trim().length > 0);
-    const isContainer = /container|row|col-|card|body|html/i.test(selector);
+    const isContainer = /container|row|col-|card|navbar|header|footer|main|section|aside|body|html|album|jumbotron/i.test(selector);
     const isInteractive = this.isInteractiveElement(selector, context);
 
     // Phase 1: Critical accessibility and contrast
@@ -106,6 +106,12 @@ export class AdvancedElementAnalyzer {
     const issues: Issue[] = [];
 
     if (!styles || !styles.color || !styles.backgroundColor) return issues;
+
+    // Skip elements with transparent/unresolvable background — can't reliably check contrast
+    const bg = styles.backgroundColor.trim().toLowerCase();
+    if (bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)' || bg === 'rgba(0,0,0,0)') {
+      return issues;
+    }
 
     const fontSize = parseFloat(styles.fontSize || '16');
     const fontWeight = parseInt(styles.fontWeight || '400');
@@ -460,7 +466,10 @@ export class AdvancedElementAnalyzer {
     // Convert analysis results to issues
     for (const issue of analysis.issues) {
       if (issue.type === 'line_length' || issue.type === 'line_height') {
-        // Skip "Line too short" and line-height for headings, buttons, lead text, and short text
+        // Skip line_length/line_height for elements without substantial text content
+        const textLen = context?.textContent?.length ?? 0;
+        if (issue.type === 'line_length' && textLen < 100) continue;
+        // Skip "Line too short" for headings, buttons, lead text, and short text
         if (issue.message.includes('too short') && (isHeading || isLeafText || containerWidth < 200 || selector.includes('.lead'))) continue;
         if (issue.type === 'line_height' && selector.includes('.lead')) continue;
         // Skip "Line too long" for high-level containers that aren't text blocks
@@ -604,6 +613,11 @@ export class AdvancedElementAnalyzer {
     const issues: Issue[] = [];
 
     if (!styles) return issues;
+
+    // Skip alignment analysis for SVG internal elements
+    const tag = selector.split(/[.#\[]/)[0].toLowerCase();
+    const isSvgInternal = ['svg', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'ellipse', 'g', 'text', 'tspan', 'use', 'clippath', 'defs'].includes(tag);
+    if (isSvgInternal) return issues;
 
     // Use actual positioning data from ContentScript
     const nearbyElements = context?.relations?.nearbyElements || [];

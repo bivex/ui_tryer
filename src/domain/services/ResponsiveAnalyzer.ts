@@ -57,7 +57,7 @@ export class ResponsiveAnalyzer {
     issues.push(...overflowIssues);
 
     // Check breakpoint consistency
-    const breakpointIssues = this.analyzeBreakpointConsistency(elementId, selector, styles, breakpoint, config);
+    const breakpointIssues = this.analyzeBreakpointConsistency(elementId, selector, styles, breakpoint, config, currentViewport.width);
     issues.push(...breakpointIssues);
 
     // Check mobile readability
@@ -152,7 +152,8 @@ export class ResponsiveAnalyzer {
     selector: string,
     styles: any,
     currentBreakpoint: string,
-    config: any
+    config: any,
+    viewportWidth?: number
   ): ResponsiveIssue[] {
     const issues: ResponsiveIssue[] = [];
 
@@ -162,6 +163,11 @@ export class ResponsiveAnalyzer {
     // Check for hardcoded sizes that don't scale
     const width = parseFloat(styles.width);
     const height = parseFloat(styles.height);
+
+    // Skip if width ≈ viewport — it's a responsive container, not fixed CSS
+    if (viewportWidth && width && Math.abs(width - viewportWidth) < 30) {
+      return issues;
+    }
 
     if (width && width > config.breakpoints.md && (styles.maxWidth === 'none' || !styles.maxWidth)) {
       issues.push({
