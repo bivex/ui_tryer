@@ -60,3 +60,4 @@ temp/
 .local
 *.local
 /bootstrap-4.0.0
+/.antigravitycli

@@ -54,6 +54,11 @@ async function extractElements(page: Page): Promise<RawElement[]> {
       const elClasses = Array.from(el.classList);
       if (skipPrefixes.some(p => id.startsWith(p) || elClasses.some(c => c.startsWith(p)))) continue;
       if (elClasses.some(c => c.startsWith('chartjs-'))) continue;
+      // Skip children of chartjs containers (plain divs inside chartjs-size-monitor)
+      if (el.parentElement && Array.from(el.parentElement.classList).some(c => c.startsWith('chartjs-'))) continue;
+      // Skip elements with absurd width (JS layout probes)
+      const prect = el.getBoundingClientRect();
+      if (prect.width > window.innerWidth * 2) continue;
 
       const rect = el.getBoundingClientRect();
       const style = window.getComputedStyle(el);
